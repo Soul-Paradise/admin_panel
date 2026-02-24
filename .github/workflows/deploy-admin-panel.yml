@@ -1,4 +1,4 @@
-name: Deploy to Vercel
+name: Deploy to Vercel - Admin Panel
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VITE_API_URL: https://soul-paradise-backend-248893735000.asia-south1.run.app/api/v1
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Deploy to Vercel
         id: deploy

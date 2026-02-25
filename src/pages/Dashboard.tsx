@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, type PaginatedUsers } from '../lib/api';
+import { api } from '../lib/api';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<{ total: number; customers: number; agents: number; admins: number } | null>(null);

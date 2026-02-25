@@ -32,6 +32,34 @@ export interface AuthResponse {
   };
 }
 
+export type ServiceType = 'FLIGHT' | 'HOTEL' | 'TRAVEL_PLAN' | 'INSURANCE';
+export type CommissionType = 'PERCENTAGE' | 'FIXED';
+
+export interface ServiceCommission {
+  id: string;
+  serviceType: ServiceType;
+  subType: string | null;
+  commissionType: CommissionType;
+  value: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommissionInput {
+  serviceType: ServiceType;
+  subType: string | null;
+  commissionType: CommissionType;
+  value: number;
+  isActive: boolean;
+}
+
+export interface UpdateCommissionInput {
+  commissionType?: CommissionType;
+  value?: number;
+  isActive?: boolean;
+}
+
 export interface PaginatedUsers {
   users: User[];
   pagination: {
@@ -140,6 +168,31 @@ class ApiClient {
     return this.authenticatedRequest<User>(`/admin/users/${userId}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
+    });
+  }
+
+  // Commission endpoints
+  async getCommissions(): Promise<ServiceCommission[]> {
+    return this.authenticatedRequest<ServiceCommission[]>('/admin/commissions');
+  }
+
+  async createCommission(input: CreateCommissionInput): Promise<ServiceCommission> {
+    return this.authenticatedRequest<ServiceCommission>('/admin/commissions', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateCommission(id: string, input: UpdateCommissionInput): Promise<ServiceCommission> {
+    return this.authenticatedRequest<ServiceCommission>(`/admin/commissions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async deleteCommission(id: string): Promise<{ deleted: boolean }> {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/commissions/${id}`, {
+      method: 'DELETE',
     });
   }
 }

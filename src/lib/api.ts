@@ -60,6 +60,45 @@ export interface UpdateCommissionInput {
   isActive?: boolean;
 }
 
+export type OfferCategory = 'ALL_OFFERS' | 'BANK_OFFERS' | 'FLIGHTS' | 'HOTELS' | 'HOLIDAYS' | 'VISA';
+export type ColorTheme = 'blue' | 'green' | 'orange' | 'purple' | 'teal' | 'pink';
+
+export interface Offer {
+  id: string;
+  title: string;
+  description: string;
+  category: OfferCategory;
+  colorTheme: ColorTheme;
+  isActive: boolean;
+  sortOrder: number;
+  validFrom: string | null;
+  validUntil: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOfferInput {
+  title: string;
+  description: string;
+  category: OfferCategory;
+  colorTheme: ColorTheme;
+  isActive: boolean;
+  sortOrder: number;
+  validFrom: string | null;
+  validUntil: string | null;
+}
+
+export interface UpdateOfferInput {
+  title?: string;
+  description?: string;
+  category?: OfferCategory;
+  colorTheme?: ColorTheme;
+  isActive?: boolean;
+  sortOrder?: number;
+  validFrom?: string | null;
+  validUntil?: string | null;
+}
+
 export interface PaginatedUsers {
   users: User[];
   pagination: {
@@ -192,6 +231,31 @@ class ApiClient {
 
   async deleteCommission(id: string): Promise<{ deleted: boolean }> {
     return this.authenticatedRequest<{ deleted: boolean }>(`/admin/commissions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Offer endpoints
+  async getOffers(): Promise<Offer[]> {
+    return this.authenticatedRequest<Offer[]>('/admin/offers');
+  }
+
+  async createOffer(input: CreateOfferInput): Promise<Offer> {
+    return this.authenticatedRequest<Offer>('/admin/offers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateOffer(id: string, input: UpdateOfferInput): Promise<Offer> {
+    return this.authenticatedRequest<Offer>(`/admin/offers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async deleteOffer(id: string): Promise<{ deleted: boolean }> {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/offers/${id}`, {
       method: 'DELETE',
     });
   }

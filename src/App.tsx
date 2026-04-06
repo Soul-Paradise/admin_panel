@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Commissions from './pages/Commissions';
+import Offers from './pages/Offers';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="commissions" element={<Commissions />} />
+            <Route path="offers" element={<Offers />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

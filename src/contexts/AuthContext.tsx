@@ -1,6 +1,9 @@
 import { createContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type User, type ApiError } from '../lib/api';
+import { api, type User, type ApiError, type UserRole } from '../lib/api';
+
+/** The roles allowed through the admin panel's front door. */
+const ADMIN_ROLES: UserRole[] = ['ADMIN', 'SUPER_ADMIN'];
 
 interface AuthContextType {
   user: User | null;
@@ -31,8 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const currentUser = await api.getCurrentUser();
 
-      // Only allow ADMIN users in the admin panel
-      if (currentUser.role !== 'ADMIN') {
+      // Only admins may enter the panel. SUPER_ADMIN is a superset of ADMIN, so
+      // it must be accepted here too — an exact === 'ADMIN' test would lock out
+      // the one role that can hand out page access.
+      if (!ADMIN_ROLES.includes(currentUser.role)) {
         api.clearTokens();
         setUser(null);
         setIsLoading(false);
@@ -55,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const response = await api.login(email, password);
 
-      // Enforce admin-only access
-      if (response.user.role !== 'ADMIN') {
+      // Enforce admin-only access (SUPER_ADMIN included — see checkAuth above)
+      if (!ADMIN_ROLES.includes(response.user.role)) {
         api.clearTokens();
         setError('Access denied. Admin privileges required.');
         setIsLoading(false);

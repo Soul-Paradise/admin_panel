@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, type User, type UserRole, type PaginatedUsers } from '../lib/api';
+import { useAccess } from '../hooks/useAccess';
 
 const ROLES: UserRole[] = ['USER', 'AGENT', 'ADMIN'];
 
@@ -13,9 +15,14 @@ const roleBadgeColors: Record<UserRole, string> = {
   USER: 'bg-green-500/15 text-green-400 border-green-500/30',
   AGENT: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   ADMIN: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  SUPER_ADMIN: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
 };
 
 export default function Users() {
+  const navigate = useNavigate();
+  const { canWrite } = useAccess();
+  const editable = canWrite('USERS');
+
   const [data, setData] = useState<PaginatedUsers | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -63,7 +70,13 @@ export default function Users() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold text-white mb-6">User Management</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">User Details</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Customer accounts and ticket history</p>
+        {!editable && (
+          <p className="text-xs text-gray-600 mt-2">You have read-only access to this page.</p>
+        )}
+      </div>
 
       {/* Message banner */}
       {message && (
@@ -111,20 +124,25 @@ export default function Users() {
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Current Role</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Assign Role</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-500">Loading...</td>
+                  <td colSpan={6} className="px-5 py-10 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : !data?.users.length ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-500">No users found</td>
+                  <td colSpan={6} className="px-5 py-10 text-center text-gray-500">No users found</td>
                 </tr>
               ) : (
                 data.users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-800/50 transition-colors">
+                  <tr
+                    key={user.id}
+                    onClick={() => navigate(`/users/${user.id}`)}
+                    className="cursor-pointer hover:bg-gray-800/30 transition-colors"
+                  >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-medium shrink-0">
@@ -154,19 +172,30 @@ export default function Users() {
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    {/* The row navigates on click, so the control inside it must not
+                        bubble — changing a role should never also change the page. */}
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                       {user.role === 'AGENT' ? (
                         // Rendering a <select> here would be actively dangerous: its
                         // value (AGENT) isn't among the options, so the browser would
                         // display "USER" and a stray click would demote a verified agent.
                         <span className="text-xs text-gray-500">
-                          Managed on Agents
+                          Managed on Booking Partners
+                        </span>
+                      ) : user.role === 'SUPER_ADMIN' ? (
+                        // Same hazard as AGENT above, with a worse blast radius: a
+                        // super admin is the only account that can grant page access,
+                        // so a mis-click that demoted one could leave nobody able to
+                        // administer the panel. The role is not assignable from here
+                        // at all — the backend refuses it too.
+                        <span className="text-xs text-gray-500">
+                          Super admin — not editable
                         </span>
                       ) : (
                         <select
                           value={user.role}
                           onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
-                          disabled={updatingId === user.id}
+                          disabled={!editable || updatingId === user.id}
                           className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {ASSIGNABLE_ROLES.map((r) => (
@@ -174,6 +203,11 @@ export default function Users() {
                           ))}
                         </select>
                       )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <span className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
+                        Details →
+                      </span>
                     </td>
                   </tr>
                 ))

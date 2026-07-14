@@ -3,7 +3,48 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/
 // 'USER' is what the backend Role enum actually calls a customer. This used to
 // say 'CUSTOMER', which matched nothing — the Dashboard's customer count silently
 // returned 0 and the Users role filter never matched.
-export type UserRole = 'USER' | 'AGENT' | 'ADMIN';
+export type UserRole = 'USER' | 'AGENT' | 'ADMIN' | 'SUPER_ADMIN';
+
+/** Sidebar sections. Mirrors the backend AdminPage enum — keep in sync. */
+export type AdminPage =
+  | 'DASHBOARD'
+  | 'USERS'
+  | 'BOOKING_PARTNERS'
+  | 'COMMISSION'
+  | 'COUPONS'
+  | 'OFFERS'
+  | 'REVIEWS'
+  | 'UTILITIES'
+  | 'USER_ACCESS'
+  | 'AUDIT_LOGS';
+
+export type AccessLevel = 'READ' | 'WRITE';
+
+/** A page missing from the map means no access at all — absence is denial. */
+export type PageAccessMap = Partial<Record<AdminPage, AccessLevel>>;
+
+export interface MyAccess {
+  role: UserRole;
+  isSuperAdmin: boolean;
+  access: PageAccessMap;
+}
+
+export interface AdminAccessRow {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  access: PageAccessMap;
+}
+
+export interface AdminAccessResponse {
+  pages: AdminPage[];
+  levels: AccessLevel[];
+  admins: AdminAccessRow[];
+}
 
 export interface ApiError {
   message: string;
@@ -186,6 +227,186 @@ export interface PaginatedUsers {
     limit: number;
     totalPages: number;
   };
+}
+
+// ---------------------------------------------------------------- Ticket history
+
+export type BookingType = 'FLIGHT' | 'HOTEL' | 'INSURANCE';
+
+/**
+ * The three booking tables share no parent, so the backend merges them into one
+ * timeline and tags each row with `type`. Fields outside the common core are
+ * present only for their own type.
+ */
+export interface UserBooking {
+  id: string;
+  type: BookingType;
+  bookingId: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  promoCode: string | null;
+  discountAmount: number | null;
+  createdAt: string;
+
+  // FLIGHT
+  pnr?: string | null;
+  fromCode?: string | null;
+  toCode?: string | null;
+  departureDate?: string | null;
+  airline?: string | null;
+  passengerCount?: number;
+
+  // HOTEL
+  confirmationId?: string | null;
+  hotelName?: string | null;
+  city?: string | null;
+  checkInDate?: string | null;
+  checkOutDate?: string | null;
+  nights?: number;
+
+  // INSURANCE
+  policyNumber?: string | null;
+  policyType?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  travellerCount?: number;
+}
+
+export interface UserDetail {
+  user: User & {
+    agentProfile: { id: string; agencyName: string; status: AgentStatus } | null;
+  };
+  bookings: UserBooking[];
+  summary: {
+    total: number;
+    flights: number;
+    hotels: number;
+    insurance: number;
+    totalSpent: number;
+  };
+}
+
+// --------------------------------------------------------------------- Coupons
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  description: string | null;
+  discountType: CommissionType;
+  discountValue: number;
+  minOrderAmount: number | null;
+  maxDiscount: number | null;
+  validFrom: string | null;
+  validUntil: string | null;
+  isActive: boolean;
+  usageLimit: number | null;
+  usageCount: number;
+  serviceType: ServiceType | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePromoCodeInput {
+  code: string;
+  description: string | null;
+  discountType: CommissionType;
+  discountValue: number;
+  minOrderAmount: number | null;
+  maxDiscount: number | null;
+  validFrom: string | null;
+  validUntil: string | null;
+  isActive: boolean;
+  usageLimit: number | null;
+  serviceType: ServiceType | null;
+}
+
+/** `code` is intentionally not updatable — see the backend DTO for why. */
+export type UpdatePromoCodeInput = Partial<Omit<CreatePromoCodeInput, 'code'>>;
+
+// --------------------------------------------------------------------- Reviews
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  review: string;
+  rating: number;
+  service: string;
+  isApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedTestimonials {
+  success: boolean;
+  data: Testimonial[];
+  pagination: { total: number; page: number; totalPages: number; limit: number };
+}
+
+// ------------------------------------------------------------------- Utilities
+
+export interface AnalyticsOverview {
+  range: { key: string; from: string; to: string };
+  users: {
+    total: number;
+    newInRange: number;
+    loggedInInRange: number;
+    activeTotal: number;
+  };
+  bookings: {
+    flights: { count: number; revenue: number };
+    hotels: { count: number; revenue: number };
+    insurance: { count: number; revenue: number };
+    totalCount: number;
+    totalRevenue: number;
+  };
+  coupons: {
+    bookingsWithCoupon: number;
+    totalDiscountGiven: number;
+    topCodes: { code: string; uses: number; discount: number }[];
+  };
+  offers: { active: number; total: number };
+  partners: { pending: number; approved: number; rejected: number };
+  reviews: { pending: number; approved: number; total: number };
+  contacts: { pending: number; sent: number; failed: number };
+  payments: {
+    paid: { count: number; amount: number };
+    failed: { count: number };
+    refunded: { count: number; amount: number };
+  };
+  dailyBookings: {
+    date: string;
+    flights: number;
+    hotels: number;
+    insurance: number;
+  }[];
+  /** Caveats the backend wants surfaced, e.g. coupon usage not yet tracked. */
+  notes: string[];
+}
+
+// ------------------------------------------------------------------ Audit logs
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string | null;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  page: AdminPage | null;
+  method: string;
+  path: string;
+  statusCode: number;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface PaginatedAuditLogs {
+  items: AuditLogEntry[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
 class ApiClient {
@@ -435,6 +656,140 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  }
+
+  // ---------------------------------------------------------------- Page access
+
+  /**
+   * The caller's own permissions. Drives which sidebar entries render and which
+   * mutating controls are enabled. Every admin can call this, including one with
+   * no grant on the User Access page.
+   */
+  async getMyAccess(): Promise<MyAccess> {
+    return this.authenticatedRequest<MyAccess>('/admin/access/me');
+  }
+
+  /** Super admin only. */
+  async getAdminAccess(): Promise<AdminAccessResponse> {
+    return this.authenticatedRequest<AdminAccessResponse>('/admin/access/admins');
+  }
+
+  /**
+   * Replaces the target's grants wholesale — pages omitted from `access` are
+   * revoked. Send the full desired state, not a delta.
+   */
+  async setAdminAccess(
+    userId: string,
+    access: PageAccessMap,
+  ): Promise<{ userId: string; access: PageAccessMap }> {
+    return this.authenticatedRequest(`/admin/access/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ access }),
+    });
+  }
+
+  // -------------------------------------------------------------- User details
+
+  async getUserDetail(userId: string): Promise<UserDetail> {
+    return this.authenticatedRequest<UserDetail>(`/admin/users/${userId}`);
+  }
+
+  // ------------------------------------------------------------------- Coupons
+
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return this.authenticatedRequest<PromoCode[]>('/admin/promo-codes');
+  }
+
+  async createPromoCode(input: CreatePromoCodeInput): Promise<PromoCode> {
+    return this.authenticatedRequest<PromoCode>('/admin/promo-codes', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updatePromoCode(
+    id: string,
+    input: UpdatePromoCodeInput,
+  ): Promise<PromoCode> {
+    return this.authenticatedRequest<PromoCode>(`/admin/promo-codes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  /** Rejected by the backend if the coupon has ever been redeemed — deactivate instead. */
+  async deletePromoCode(id: string): Promise<{ deleted: boolean }> {
+    return this.authenticatedRequest(`/admin/promo-codes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ------------------------------------------------------------------- Reviews
+
+  async getTestimonials(params: {
+    page?: number;
+    limit?: number;
+    approved?: boolean;
+  } = {}): Promise<PaginatedTestimonials> {
+    const query = new URLSearchParams();
+    query.set('page', String(params.page ?? 1));
+    query.set('limit', String(params.limit ?? 20));
+    if (params.approved !== undefined) {
+      query.set('approved', String(params.approved));
+    }
+
+    return this.authenticatedRequest<PaginatedTestimonials>(
+      `/testimonials/all?${query.toString()}`,
+    );
+  }
+
+  async setTestimonialApproval(
+    id: string,
+    isApproved: boolean,
+  ): Promise<{ success: boolean; data: Testimonial }> {
+    return this.authenticatedRequest(`/testimonials/${id}/approval`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isApproved }),
+    });
+  }
+
+  async deleteTestimonial(id: string): Promise<{ success: boolean }> {
+    return this.authenticatedRequest(`/testimonials/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ----------------------------------------------------------------- Utilities
+
+  async getAnalyticsOverview(
+    range: 'today' | '7d' | '30d' = 'today',
+  ): Promise<AnalyticsOverview> {
+    return this.authenticatedRequest<AnalyticsOverview>(
+      `/admin/analytics/overview?range=${range}`,
+    );
+  }
+
+  // ---------------------------------------------------------------- Audit logs
+
+  async getAuditLogs(params: {
+    search?: string;
+    page?: AdminPage;
+    from?: string;
+    to?: string;
+    pageNum?: number;
+    limit?: number;
+  } = {}): Promise<PaginatedAuditLogs> {
+    const query = new URLSearchParams();
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', params.page);
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
+    query.set('pageNum', String(params.pageNum ?? 1));
+    query.set('limit', String(params.limit ?? 25));
+
+    return this.authenticatedRequest<PaginatedAuditLogs>(
+      `/admin/audit-logs?${query.toString()}`,
+    );
   }
 }
 

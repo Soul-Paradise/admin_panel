@@ -6,6 +6,7 @@ import {
   type AgentListItem,
   type AgentStatus,
 } from '../lib/api';
+import { useAccess } from '../hooks/useAccess';
 
 const STATUS_TABS: Array<{ id: AgentStatus | 'ALL'; label: string }> = [
   { id: 'PENDING', label: 'Pending' },
@@ -37,6 +38,9 @@ function formatDate(value: string): string {
 }
 
 export default function Agents() {
+  const { canWrite } = useAccess();
+  const canDecide = canWrite('BOOKING_PARTNERS');
+
   const [tab, setTab] = useState<AgentStatus | 'ALL'>('PENDING');
   const [items, setItems] = useState<AgentListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,6 +218,7 @@ export default function Agents() {
           onBack={() => setSelected(null)}
           onDecision={handleDecision}
           onError={(text) => setMessage({ type: 'error', text })}
+          canDecide={canDecide}
         />
       ) : loading ? (
         <p className="text-gray-500">Loading…</p>
@@ -302,11 +307,13 @@ function ApplicationDetail({
   onBack,
   onDecision,
   onError,
+  canDecide,
 }: {
   application: AgentApplication;
   onBack: () => void;
   onDecision: (a: AgentApplication, d: 'approve' | 'reject') => void;
   onError: (text: string) => void;
+  canDecide: boolean;
 }) {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
 
@@ -444,6 +451,11 @@ function ApplicationDetail({
       {isDecided ? (
         <p className="text-sm text-gray-500">
           This partner is already approved and can sign in.
+        </p>
+      ) : !canDecide ? (
+        <p className="text-sm text-gray-500">
+          You have read-only access to Booking Partners, so you cannot approve or
+          reject this application.
         </p>
       ) : (
         <div className="flex gap-3">

@@ -154,11 +154,14 @@ export interface PaginatedAgents {
 
 export type ServiceType = 'FLIGHT' | 'HOTEL' | 'TRAVEL_PLAN' | 'INSURANCE';
 export type CommissionType = 'PERCENTAGE' | 'FIXED';
+// B2C = retail consumer (Role.USER); B2B = approved booking partner (Role.AGENT).
+export type CommissionAudience = 'B2C' | 'B2B';
 
 export interface ServiceCommission {
   id: string;
   serviceType: ServiceType;
   subType: string | null;
+  audience: CommissionAudience;
   commissionType: CommissionType;
   value: number;
   isActive: boolean;
@@ -169,6 +172,7 @@ export interface ServiceCommission {
 export interface CreateCommissionInput {
   serviceType: ServiceType;
   subType: string | null;
+  audience: CommissionAudience;
   commissionType: CommissionType;
   value: number;
   isActive: boolean;

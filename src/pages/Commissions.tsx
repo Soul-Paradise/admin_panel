@@ -4,6 +4,7 @@ import {
   type ServiceCommission,
   type ServiceType,
   type CommissionType,
+  type CommissionAudience,
 } from '../lib/api';
 
 const SERVICE_LABELS: Record<ServiceType, string> = {
@@ -35,8 +36,18 @@ const serviceBadgeColors: Record<ServiceType, string> = {
   INSURANCE: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
 };
 
+// Rendered in this order under every service. B2C is the retail consumer; B2B
+// is the approved booking partner (agent).
+const AUDIENCE_ORDER: CommissionAudience[] = ['B2C', 'B2B'];
+
+const AUDIENCE_LABELS: Record<CommissionAudience, string> = {
+  B2C: 'Common User (B2C)',
+  B2B: 'Agents (B2B)',
+};
+
 export default function Commissions() {
   const [commissions, setCommissions] = useState<ServiceCommission[]>([]);
+  const [activeTab, setActiveTab] = useState<CommissionAudience>('B2C');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -45,6 +56,7 @@ export default function Commissions() {
 
   // Form state
   const [formServiceType, setFormServiceType] = useState<ServiceType>('FLIGHT');
+  const [formAudience, setFormAudience] = useState<CommissionAudience>('B2C');
   const [formSubType, setFormSubType] = useState<string | null>('domestic');
   const [formCommissionType, setFormCommissionType] = useState<CommissionType>('PERCENTAGE');
   const [formValue, setFormValue] = useState('');
@@ -68,6 +80,7 @@ export default function Commissions() {
 
   const resetForm = () => {
     setFormServiceType('FLIGHT');
+    setFormAudience('B2C');
     setFormSubType('domestic');
     setFormCommissionType('PERCENTAGE');
     setFormValue('');
@@ -79,6 +92,7 @@ export default function Commissions() {
   const handleEdit = (c: ServiceCommission) => {
     setEditingId(c.id);
     setFormServiceType(c.serviceType);
+    setFormAudience(c.audience);
     setFormSubType(c.subType);
     setFormCommissionType(c.commissionType);
     setFormValue(String(c.value));
@@ -109,6 +123,7 @@ export default function Commissions() {
         await api.createCommission({
           serviceType: formServiceType,
           subType: formSubType,
+          audience: formAudience,
           commissionType: formCommissionType,
           value,
           isActive: formIsActive,
@@ -125,7 +140,7 @@ export default function Commissions() {
   };
 
   const handleDelete = async (c: ServiceCommission) => {
-    if (!confirm(`Delete ${SERVICE_LABELS[c.serviceType]} ${c.subType || ''} commission?`)) return;
+    if (!confirm(`Delete the ${AUDIENCE_LABELS[c.audience]} ${SERVICE_LABELS[c.serviceType]} ${c.subType || ''} commission?`)) return;
 
     setMessage(null);
     try {
@@ -147,15 +162,19 @@ export default function Commissions() {
     }
   };
 
-  // Group by service type
-  const grouped = commissions.reduce(
-    (acc, c) => {
-      if (!acc[c.serviceType]) acc[c.serviceType] = [];
-      acc[c.serviceType].push(c);
-      return acc;
-    },
-    {} as Record<string, ServiceCommission[]>,
-  );
+  // Rates for the active tab (audience), grouped by service type.
+  const grouped = commissions
+    .filter((c) => c.audience === activeTab)
+    .reduce(
+      (acc, c) => {
+        if (!acc[c.serviceType]) acc[c.serviceType] = [];
+        acc[c.serviceType].push(c);
+        return acc;
+      },
+      {} as Record<ServiceType, ServiceCommission[]>,
+    );
+
+  const servicesWithRates = SERVICE_TYPES.filter((svc) => grouped[svc]?.length);
 
   return (
     <div className="p-8">
@@ -168,12 +187,29 @@ export default function Commissions() {
         </div>
         {!showForm && (
           <button
-            onClick={() => { setShowForm(true); setMessage(null); }}
+            onClick={() => { setFormAudience(activeTab); setShowForm(true); setMessage(null); }}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             + Add Rate
           </button>
         )}
+      </div>
+
+      {/* Audience tabs */}
+      <div className="flex gap-1 mb-6 border-b border-gray-800">
+        {AUDIENCE_ORDER.map((aud) => (
+          <button
+            key={aud}
+            onClick={() => setActiveTab(aud)}
+            className={`px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
+              activeTab === aud
+                ? 'border-blue-500 text-white'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {AUDIENCE_LABELS[aud]}
+          </button>
+        ))}
       </div>
 
       {/* Message banner */}
@@ -213,6 +249,21 @@ export default function Commissions() {
                 >
                   {SERVICE_TYPES.map((svc) => (
                     <option key={svc} value={svc}>{SERVICE_LABELS[svc]}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Audience */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Applies To</label>
+                <select
+                  value={formAudience}
+                  onChange={(e) => setFormAudience(e.target.value as CommissionAudience)}
+                  disabled={!!editingId}
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {AUDIENCE_ORDER.map((aud) => (
+                    <option key={aud} value={aud}>{AUDIENCE_LABELS[aud]}</option>
                   ))}
                 </select>
               </div>
@@ -305,111 +356,116 @@ export default function Commissions() {
         <div className="text-center py-12 text-gray-500">Loading...</div>
       )}
 
-      {/* Empty state */}
-      {!loading && commissions.length === 0 && (
+      {/* Empty state for the active tab */}
+      {!loading && servicesWithRates.length === 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl py-16 text-center">
-          <p className="text-gray-500">No commission rates configured yet.</p>
+          <p className="text-gray-500">
+            No {AUDIENCE_LABELS[activeTab]} commission rates configured yet.
+          </p>
           <p className="text-gray-600 text-sm mt-1">Click "+ Add Rate" to get started.</p>
         </div>
       )}
 
-      {/* Commission tables grouped by service type */}
+      {/* Commission tables for the active tab (audience), grouped by service */}
       {!loading &&
-        Object.entries(grouped).map(([serviceType, items]) => (
-          <div key={serviceType} className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
-                  serviceBadgeColors[serviceType as ServiceType]
-                }`}
-              >
-                {SERVICE_LABELS[serviceType as ServiceType]}
-              </span>
-            </div>
+        servicesWithRates.map((serviceType) => {
+          const items = grouped[serviceType];
+          return (
+            <div key={serviceType} className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
+                    serviceBadgeColors[serviceType]
+                  }`}
+                >
+                  {SERVICE_LABELS[serviceType]}
+                </span>
+              </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                        Category
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                        Type
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                        Value
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                        Status
-                      </th>
-                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {items.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-800/50 transition-colors">
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-medium text-white">
-                            {c.subType
-                              ? c.subType.charAt(0).toUpperCase() + c.subType.slice(1)
-                              : 'All'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="text-sm text-gray-400">
-                            {c.commissionType === 'PERCENTAGE' ? 'Percentage' : 'Fixed Amount'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-semibold text-white">
-                            {c.commissionType === 'PERCENTAGE'
-                              ? `${c.value}%`
-                              : `₹${c.value}`}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <button
-                            onClick={() => handleToggleActive(c)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
-                              c.isActive
-                                ? 'bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/25'
-                                : 'bg-gray-500/15 text-gray-500 border-gray-500/30 hover:bg-gray-500/25'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                c.isActive ? 'bg-green-400' : 'bg-gray-500'
-                              }`}
-                            />
-                            {c.isActive ? 'Active' : 'Inactive'}
-                          </button>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            onClick={() => handleEdit(c)}
-                            className="text-sm text-blue-400 hover:text-blue-300 mr-3 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(c)}
-                            className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </td>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+                          Category
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+                          Type
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+                          Value
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+                          Status
+                        </th>
+                        <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                      {items.map((c) => (
+                        <tr key={c.id} className="hover:bg-gray-800/50 transition-colors">
+                          <td className="px-5 py-4">
+                            <span className="text-sm font-medium text-white">
+                              {c.subType
+                                ? c.subType.charAt(0).toUpperCase() + c.subType.slice(1)
+                                : 'All'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="text-sm text-gray-400">
+                              {c.commissionType === 'PERCENTAGE' ? 'Percentage' : 'Fixed Amount'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="text-sm font-semibold text-white">
+                              {c.commissionType === 'PERCENTAGE'
+                                ? `${c.value}%`
+                                : `₹${c.value}`}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <button
+                              onClick={() => handleToggleActive(c)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
+                                c.isActive
+                                  ? 'bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/25'
+                                  : 'bg-gray-500/15 text-gray-500 border-gray-500/30 hover:bg-gray-500/25'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                  c.isActive ? 'bg-green-400' : 'bg-gray-500'
+                                }`}
+                              />
+                              {c.isActive ? 'Active' : 'Inactive'}
+                            </button>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              onClick={() => handleEdit(c)}
+                              className="text-sm text-blue-400 hover:text-blue-300 mr-3 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(c)}
+                              className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
     </div>
   );
 }

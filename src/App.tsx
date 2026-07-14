@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import Agents from './pages/Agents';
 import Commissions from './pages/Commissions';
 import Offers from './pages/Offers';
 
@@ -42,6 +43,7 @@ export default function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
+            <Route path="agents" element={<Agents />} />
             <Route path="commissions" element={<Commissions />} />
             <Route path="offers" element={<Offers />} />
           </Route>

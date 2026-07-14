@@ -1,10 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api, type User, type UserRole, type PaginatedUsers } from '../lib/api';
 
-const ROLES: UserRole[] = ['CUSTOMER', 'AGENT', 'ADMIN'];
+const ROLES: UserRole[] = ['USER', 'AGENT', 'ADMIN'];
+
+// AGENT is filterable but NOT directly assignable. The role only works alongside
+// an approved AgentProfile — granting it here would leave the user with no
+// profile, and the login gate fails closed on exactly that, locking them out.
+// Agents are promoted by approving their application on the Agents page.
+const ASSIGNABLE_ROLES: UserRole[] = ['USER', 'ADMIN'];
 
 const roleBadgeColors: Record<UserRole, string> = {
-  CUSTOMER: 'bg-green-500/15 text-green-400 border-green-500/30',
+  USER: 'bg-green-500/15 text-green-400 border-green-500/30',
   AGENT: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   ADMIN: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
 };
@@ -149,16 +155,25 @@ export default function Users() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
-                        disabled={updatingId === user.id}
-                        className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
+                      {user.role === 'AGENT' ? (
+                        // Rendering a <select> here would be actively dangerous: its
+                        // value (AGENT) isn't among the options, so the browser would
+                        // display "USER" and a stray click would demote a verified agent.
+                        <span className="text-xs text-gray-500">
+                          Managed on Agents
+                        </span>
+                      ) : (
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
+                          disabled={updatingId === user.id}
+                          className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {ASSIGNABLE_ROLES.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                   </tr>
                 ))

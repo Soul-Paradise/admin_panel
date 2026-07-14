@@ -10,7 +10,7 @@ export default function Dashboard() {
       try {
         const [all, customers, agents, admins] = await Promise.all([
           api.getUsers({ limit: 1 }),
-          api.getUsers({ role: 'CUSTOMER', limit: 1 }),
+          api.getUsers({ role: 'USER', limit: 1 }),
           api.getUsers({ role: 'AGENT', limit: 1 }),
           api.getUsers({ role: 'ADMIN', limit: 1 }),
         ]);

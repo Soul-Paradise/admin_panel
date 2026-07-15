@@ -4,23 +4,22 @@ import {
   type AgentApplication,
   type AgentDocument,
   type AgentListItem,
-  type AgentStatus,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
 
-const STATUS_TABS: Array<{ id: AgentStatus | 'ALL'; label: string }> = [
-  { id: 'PENDING', label: 'Pending' },
-  { id: 'REJECTED', label: 'Rejected' },
-  { id: 'APPROVED', label: 'Approved' },
+type AccessTab = 'ACTIVE' | 'REVOKED' | 'ALL';
+
+const ACCESS_TABS: Array<{ id: AccessTab; label: string }> = [
+  { id: 'ACTIVE', label: 'Active' },
+  { id: 'REVOKED', label: 'Revoked' },
   { id: 'ALL', label: 'All' },
 ];
 
-const statusBadgeColors: Record<AgentStatus, string> = {
-  PENDING: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  UNDER_REVIEW: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  APPROVED: 'bg-green-500/15 text-green-400 border-green-500/30',
-  REJECTED: 'bg-red-500/15 text-red-400 border-red-500/30',
-};
+function accessBadge(isActive: boolean): { label: string; className: string } {
+  return isActive
+    ? { label: 'Active', className: 'bg-green-500/15 text-green-400 border-green-500/30' }
+    : { label: 'Revoked', className: 'bg-red-500/15 text-red-400 border-red-500/30' };
+}
 
 const DOC_LABELS: Record<string, string> = {
   PAN_CARD: 'PAN Card',
@@ -41,7 +40,7 @@ export default function Agents() {
   const { canWrite } = useAccess();
   const canDecide = canWrite('BOOKING_PARTNERS');
 
-  const [tab, setTab] = useState<AgentStatus | 'ALL'>('PENDING');
+  const [tab, setTab] = useState<AccessTab>('ACTIVE');
   const [items, setItems] = useState<AgentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{
@@ -52,35 +51,34 @@ export default function Agents() {
   const [selected, setSelected] = useState<AgentApplication | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Shown as a badge on the Pending tab. Fetched independently of the current
-  // tab, so a waiting application is visible even while you're looking at
-  // Approved — otherwise a new applicant can sit unreviewed and unnoticed.
-  const [pendingCount, setPendingCount] = useState(0);
+  // Shown as a badge on the Revoked tab, fetched independently of the current
+  // tab so revoked partners stay visible while you're looking at Active.
+  const [revokedCount, setRevokedCount] = useState(0);
 
-  const fetchPendingCount = useCallback(async () => {
+  const fetchRevokedCount = useCallback(async () => {
     try {
-      const result = await api.getAgents({ status: 'PENDING', limit: 1 });
-      setPendingCount(result.pagination.total);
+      const result = await api.getAgents({ active: false, limit: 1 });
+      setRevokedCount(result.pagination.total);
     } catch {
       // A failed badge count must not take the page down with it.
     }
   }, []);
 
   useEffect(() => {
-    void fetchPendingCount();
-  }, [fetchPendingCount]);
+    void fetchRevokedCount();
+  }, [fetchRevokedCount]);
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
 
     try {
       const result = await api.getAgents({
-        status: tab === 'ALL' ? undefined : tab,
+        active: tab === 'ALL' ? undefined : tab === 'ACTIVE',
         limit: 50,
       });
       setItems(result.items);
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to load agents' });
+      setMessage({ type: 'error', text: error.message || 'Failed to load partners' });
     } finally {
       setLoading(false);
     }
@@ -96,68 +94,60 @@ export default function Agents() {
     try {
       setSelected(await api.getAgent(id));
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to load application' });
+      setMessage({ type: 'error', text: error.message || 'Failed to load partner' });
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const handleDecision = async (
+  const handleAccessChange = async (
     application: AgentApplication,
-    decision: 'approve' | 'reject',
+    action: 'revoke' | 'restore',
   ) => {
-    if (decision === 'approve') {
-      if (
-        !confirm(
-          `Approve ${application.agencyName}? They will immediately be able to sign in and book as a partner.`,
-        )
-      ) {
-        return;
-      }
+    if (action === 'revoke') {
+      // Reason is optional — it's an audit-trail note, and if entered it's
+      // emailed to the partner. Cancelling the prompt aborts the revoke.
+      const reason = prompt(
+        `Revoke access for ${application.agencyName}?\n\nThey will be signed out and unable to log in until you restore access.\n\nOptional reason (emailed to the partner):`,
+      );
+
+      if (reason === null) return;
 
       try {
-        await api.approveAgent(application.id);
+        await api.revokeAgent(application.id, reason.trim() || undefined);
         setMessage({
           type: 'success',
-          text: `${application.agencyName} approved. They can now sign in.`,
+          text: `${application.agencyName} revoked. They can no longer sign in.`,
         });
         setSelected(null);
         void fetchAgents();
-        void fetchPendingCount();
+        void fetchRevokedCount();
       } catch (error: any) {
-        setMessage({ type: 'error', text: error.message || 'Failed to approve' });
+        setMessage({ type: 'error', text: error.message || 'Failed to revoke access' });
       }
 
       return;
     }
 
-    // The reason is emailed verbatim to the applicant and is the only guidance
-    // they get for fixing their submission, so require something actionable.
-    const reason = prompt(
-      'Why is this application being rejected?\n\nThis is emailed to the applicant along with a link to upload corrected documents.',
-    );
-
-    if (reason === null) return;
-
-    if (reason.trim().length < 10) {
-      setMessage({
-        type: 'error',
-        text: 'Give the applicant an actionable reason (at least 10 characters).',
-      });
+    if (
+      !confirm(
+        `Restore access for ${application.agencyName}? They will be able to sign in and book again.`,
+      )
+    ) {
       return;
     }
 
     try {
-      await api.rejectAgent(application.id, reason.trim());
+      await api.restoreAgent(application.id);
       setMessage({
         type: 'success',
-        text: `${application.agencyName} rejected. They have been emailed a resubmission link.`,
+        text: `${application.agencyName} restored. They can sign in again.`,
       });
       setSelected(null);
       void fetchAgents();
-      void fetchPendingCount();
+      void fetchRevokedCount();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to reject' });
+      setMessage({ type: 'error', text: error.message || 'Failed to restore access' });
     }
   };
 
@@ -167,7 +157,8 @@ export default function Agents() {
         <div>
           <h1 className="text-2xl font-bold text-white">Booking Partners</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Review agent KYC documents and approve or reject applications.
+            Booking partners are active as soon as they register. Review their KYC
+            details and revoke or restore access here.
           </p>
         </div>
       </div>
@@ -192,7 +183,7 @@ export default function Agents() {
       )}
 
       <div className="flex gap-1 mb-6 border-b border-gray-800">
-        {STATUS_TABS.map((t) => (
+        {ACCESS_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -203,9 +194,9 @@ export default function Agents() {
             }`}
           >
             {t.label}
-            {t.id === 'PENDING' && pendingCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">
-                {pendingCount}
+            {t.id === 'REVOKED' && revokedCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+                {revokedCount}
               </span>
             )}
           </button>
@@ -216,7 +207,7 @@ export default function Agents() {
         <ApplicationDetail
           application={selected}
           onBack={() => setSelected(null)}
-          onDecision={handleDecision}
+          onAccessChange={handleAccessChange}
           onError={(text) => setMessage({ type: 'error', text })}
           canDecide={canDecide}
         />
@@ -225,9 +216,11 @@ export default function Agents() {
       ) : items.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-xl px-6 py-12 text-center">
           <p className="text-gray-400">
-            {tab === 'PENDING'
-              ? 'No applications waiting for review.'
-              : 'Nothing here.'}
+            {tab === 'REVOKED'
+              ? 'No revoked partners.'
+              : tab === 'ACTIVE'
+                ? 'No active partners yet.'
+                : 'Nothing here.'}
           </p>
         </div>
       ) : (
@@ -236,7 +229,7 @@ export default function Agents() {
             <table className="w-full">
               <thead>
                 <tr>
-                  {['Agency', 'Contact', 'Location', 'Submitted', 'Status', ''].map(
+                  {['Agency', 'Contact', 'Location', 'Registered', 'Access', ''].map(
                     (h) => (
                       <th
                         key={h}
@@ -269,26 +262,18 @@ export default function Agents() {
                     </td>
                     <td className="px-5 py-4">
                       <span
-                        className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${statusBadgeColors[item.status]}`}
+                        className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${accessBadge(item.user.isActive).className}`}
                       >
-                        {item.status}
+                        {accessBadge(item.user.isActive).label}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {/* A real button, not a text link: this is the primary action
-                          on the page, and approve/reject live behind it. */}
                       <button
                         onClick={() => void openDetail(item.id)}
                         disabled={detailLoading}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
-                          item.status === 'PENDING'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'border border-gray-700 text-gray-300 hover:bg-gray-800'
-                        }`}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 border border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
-                        {item.status === 'PENDING'
-                          ? 'Review documents'
-                          : 'View'}
+                        View
                       </button>
                     </td>
                   </tr>
@@ -305,13 +290,13 @@ export default function Agents() {
 function ApplicationDetail({
   application,
   onBack,
-  onDecision,
+  onAccessChange,
   onError,
   canDecide,
 }: {
   application: AgentApplication;
   onBack: () => void;
-  onDecision: (a: AgentApplication, d: 'approve' | 'reject') => void;
+  onAccessChange: (a: AgentApplication, action: 'revoke' | 'restore') => void;
   onError: (text: string) => void;
   canDecide: boolean;
 }) {
@@ -334,7 +319,7 @@ function ApplicationDetail({
     }
   };
 
-  const isDecided = application.status === 'APPROVED';
+  const isActive = application.user.isActive;
 
   return (
     <div className="space-y-6">
@@ -352,13 +337,13 @@ function ApplicationDetail({
               {application.agencyName}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Submitted {formatDate(application.submittedAt)}
+              Registered {formatDate(application.submittedAt)}
             </p>
           </div>
           <span
-            className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border shrink-0 ${statusBadgeColors[application.status]}`}
+            className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border shrink-0 ${accessBadge(isActive).className}`}
           >
-            {application.status}
+            {accessBadge(isActive).label}
           </span>
         </div>
 
@@ -448,28 +433,33 @@ function ApplicationDetail({
         </ol>
       </div>
 
-      {isDecided ? (
+      {!canDecide ? (
         <p className="text-sm text-gray-500">
-          This partner is already approved and can sign in.
+          You have read-only access to Booking Partners, so you cannot change this
+          partner's access.
         </p>
-      ) : !canDecide ? (
-        <p className="text-sm text-gray-500">
-          You have read-only access to Booking Partners, so you cannot approve or
-          reject this application.
-        </p>
-      ) : (
-        <div className="flex gap-3">
+      ) : isActive ? (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-gray-500">
+            This partner is active and can sign in.
+          </p>
           <button
-            onClick={() => onDecision(application, 'approve')}
-            className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors"
-          >
-            Approve partner
-          </button>
-          <button
-            onClick={() => onDecision(application, 'reject')}
+            onClick={() => onAccessChange(application, 'revoke')}
             className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
           >
-            Reject
+            Revoke access
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-gray-500">
+            This partner's access is revoked — they cannot sign in.
+          </p>
+          <button
+            onClick={() => onAccessChange(application, 'restore')}
+            className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors"
+          >
+            Restore access
           </button>
         </div>
       )}

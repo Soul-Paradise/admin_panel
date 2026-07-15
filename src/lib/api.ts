@@ -93,7 +93,14 @@ export interface AgentListItem {
   status: AgentStatus;
   submittedAt: string;
   reviewedAt: string | null;
-  user: { id: string; name: string; email: string; emailVerified: boolean };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    // false = access revoked by an admin. This, not `status`, is the access gate.
+    isActive: boolean;
+  };
 }
 
 export interface AgentDocument {
@@ -141,6 +148,7 @@ export interface AgentApplication {
     name: string;
     email: string;
     emailVerified: boolean;
+    isActive: boolean;
     createdAt: string;
   };
   documents: AgentDocument[];
@@ -370,7 +378,7 @@ export interface AnalyticsOverview {
     topCodes: { code: string; uses: number; discount: number }[];
   };
   offers: { active: number; total: number };
-  partners: { pending: number; approved: number; rejected: number };
+  partners: { total: number; active: number; revoked: number };
   reviews: { pending: number; approved: number; total: number };
   contacts: { pending: number; sent: number; failed: number };
   payments: {
@@ -567,6 +575,7 @@ class ApiClient {
   // Agent (B2B) KYC review endpoints
   async getAgents(params: {
     status?: AgentStatus;
+    active?: boolean;
     search?: string;
     page?: number;
     limit?: number;
@@ -574,6 +583,7 @@ class ApiClient {
     const query = new URLSearchParams();
 
     if (params.status) query.set('status', params.status);
+    if (params.active !== undefined) query.set('active', String(params.active));
     if (params.search) query.set('search', params.search);
     query.set('page', String(params.page ?? 1));
     query.set('limit', String(params.limit ?? 20));
@@ -646,19 +656,21 @@ class ApiClient {
     return this.authenticatedRequest(`/admin/agents/${id}/reveal/${field}`);
   }
 
-  async approveAgent(id: string): Promise<{ id: string; status: AgentStatus }> {
-    return this.authenticatedRequest(`/admin/agents/${id}/approve`, {
+  /** Revoke a partner's access. Takes effect on their next request. */
+  async revokeAgent(
+    id: string,
+    reason?: string,
+  ): Promise<{ id: string; isActive: boolean }> {
+    return this.authenticatedRequest(`/admin/agents/${id}/revoke`, {
       method: 'POST',
+      body: JSON.stringify(reason ? { reason } : {}),
     });
   }
 
-  async rejectAgent(
-    id: string,
-    reason: string,
-  ): Promise<{ id: string; status: AgentStatus }> {
-    return this.authenticatedRequest(`/admin/agents/${id}/reject`, {
+  /** Restore a previously revoked partner's access. */
+  async restoreAgent(id: string): Promise<{ id: string; isActive: boolean }> {
+    return this.authenticatedRequest(`/admin/agents/${id}/restore`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
     });
   }
 

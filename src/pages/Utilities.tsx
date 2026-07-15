@@ -37,7 +37,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** A row of label/value pairs inside one card, e.g. Partners: pending/approved/rejected. */
+/** A row of label/value pairs inside one card, e.g. Partners: total/active/revoked. */
 function BreakdownCard({
   title,
   rows,
@@ -264,9 +264,9 @@ export default function Utilities() {
               <BreakdownCard
                 title="Partners"
                 rows={[
-                  { label: 'Pending', value: overview.partners.pending, tone: 'text-amber-400' },
-                  { label: 'Approved', value: overview.partners.approved, tone: 'text-emerald-400' },
-                  { label: 'Rejected', value: overview.partners.rejected, tone: 'text-red-400' },
+                  { label: 'Total', value: overview.partners.total, tone: 'text-gray-200' },
+                  { label: 'Active', value: overview.partners.active, tone: 'text-emerald-400' },
+                  { label: 'Revoked', value: overview.partners.revoked, tone: 'text-red-400' },
                 ]}
               />
               <BreakdownCard

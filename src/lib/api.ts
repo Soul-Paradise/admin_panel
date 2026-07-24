@@ -46,9 +46,19 @@ export interface AdminAccessResponse {
   admins: AdminAccessRow[];
 }
 
-export interface ApiError {
-  message: string;
+/**
+ * A real Error subclass so failures always carry a message + stack and never
+ * serialize to "{}" in the console. Read `.statusCode` or use `instanceof ApiError`.
+ */
+export class ApiError extends Error {
   statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
 }
 
 export interface User {
@@ -442,7 +452,7 @@ class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
-      throw { message: data.message || 'An error occurred', statusCode: response.status } as ApiError;
+      throw new ApiError(data.message || 'An error occurred', response.status);
     }
 
     return data as T;
@@ -451,7 +461,7 @@ class ApiClient {
   private async authenticatedRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const accessToken = this.getAccessToken();
     if (!accessToken) {
-      throw { message: 'Not authenticated', statusCode: 401 } as ApiError;
+      throw new ApiError('Not authenticated', 401);
     }
 
     return this.request<T>(endpoint, {
@@ -630,7 +640,7 @@ class ApiClient {
     const token = this.getAccessToken();
 
     if (!token) {
-      throw { message: 'Not authenticated', statusCode: 401 } as ApiError;
+      throw new ApiError('Not authenticated', 401);
     }
 
     const response = await fetch(
@@ -639,10 +649,7 @@ class ApiClient {
     );
 
     if (!response.ok) {
-      throw {
-        message: 'Failed to load document',
-        statusCode: response.status,
-      } as ApiError;
+      throw new ApiError('Failed to load document', response.status);
     }
 
     return response.blob();

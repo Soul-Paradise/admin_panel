@@ -6,6 +6,7 @@ import {
   type AdminPage,
   type PageAccessMap,
 } from '../lib/api';
+import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { useAccess } from '../hooks/useAccess';
 
 type LevelKey = 'NONE' | AccessLevel;
@@ -234,14 +235,7 @@ export default function UserAccess() {
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto mt-16 max-w-md rounded-xl border border-tertiary-button bg-peace p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
-            <svg className="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+            <ShieldAlert className="h-6 w-6 text-gray-500" strokeWidth={1.75} />
           </div>
           <h1 className="mb-1 text-base font-bold text-foreground">Restricted</h1>
           <p className="text-sm text-gray-500">Only a super admin can manage page access.</p>
@@ -363,14 +357,10 @@ export default function UserAccess() {
                       aria-label={isCollapsed ? `Show sections for ${admin.name}` : `Hide sections for ${admin.name}`}
                       className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-background hover:text-foreground"
                     >
-                      <svg
+                      <ChevronDown
                         className={`h-5 w-5 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                      </svg>
+                        strokeWidth={1.75}
+                      />
                     </button>
                   </div>
                 </div>

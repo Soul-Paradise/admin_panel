@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import {
+  BadgePercent,
+  ChevronRight,
+  Handshake,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  ScrollText,
+  ShieldCheck,
+  Star,
+  Tag,
+  TicketPercent,
+  Users,
+  Wrench,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAccess } from '../hooks/useAccess';
 import type { AdminPage } from '../lib/api';
@@ -9,7 +25,7 @@ interface NavItem {
   to: string;
   label: string;
   page: AdminPage;
-  icon: ReactNode;
+  icon: LucideIcon;
   end?: boolean;
 }
 
@@ -19,87 +35,16 @@ interface NavItem {
  * never sees the link, and the API would refuse them anyway.
  */
 const NAV_ITEMS: NavItem[] = [
-  {
-    to: '/',
-    label: 'Dashboard',
-    page: 'DASHBOARD',
-    end: true,
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    ),
-  },
-  {
-    to: '/users',
-    label: 'User Details',
-    page: 'USERS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    ),
-  },
-  {
-    to: '/partners',
-    label: 'Booking Partners',
-    page: 'BOOKING_PARTNERS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.746 3.746 0 0121 12z" />
-    ),
-  },
-  {
-    to: '/commissions',
-    label: 'Commission',
-    page: 'COMMISSION',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    ),
-  },
-  {
-    to: '/coupons',
-    label: 'Coupons',
-    page: 'COUPONS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-    ),
-  },
-  {
-    to: '/offers',
-    label: 'Offers',
-    page: 'OFFERS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-    ),
-  },
-  {
-    to: '/reviews',
-    label: 'Reviews',
-    page: 'REVIEWS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-    ),
-  },
-  {
-    to: '/utilities',
-    label: 'Utilities',
-    page: 'UTILITIES',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-    ),
-  },
-  {
-    to: '/user-access',
-    label: 'User Access',
-    page: 'USER_ACCESS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-    ),
-  },
-  {
-    to: '/audit-logs',
-    label: 'Audit Logs',
-    page: 'AUDIT_LOGS',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    ),
-  },
+  { to: '/', label: 'Dashboard', page: 'DASHBOARD', end: true, icon: LayoutDashboard },
+  { to: '/users', label: 'User Details', page: 'USERS', icon: Users },
+  { to: '/partners', label: 'Booking Partners', page: 'BOOKING_PARTNERS', icon: Handshake },
+  { to: '/commissions', label: 'Commission', page: 'COMMISSION', icon: BadgePercent },
+  { to: '/coupons', label: 'Coupons', page: 'COUPONS', icon: TicketPercent },
+  { to: '/offers', label: 'Offers', page: 'OFFERS', icon: Tag },
+  { to: '/reviews', label: 'Reviews', page: 'REVIEWS', icon: Star },
+  { to: '/utilities', label: 'Utilities', page: 'UTILITIES', icon: Wrench },
+  { to: '/user-access', label: 'User Access', page: 'USER_ACCESS', icon: ShieldCheck },
+  { to: '/audit-logs', label: 'Audit Logs', page: 'AUDIT_LOGS', icon: ScrollText },
 ];
 
 function initials(name: string | undefined): string {
@@ -154,9 +99,7 @@ export default function Layout() {
           aria-label="Close menu"
           className="-mr-2 rounded-lg p-2 text-foreground transition-colors hover:bg-background lg:hidden"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-5 w-5" strokeWidth={1.75} />
         </button>
       </div>
 
@@ -179,10 +122,15 @@ export default function Layout() {
               onClick={() => setNavOpen(false)}
               className={linkClasses}
             >
-              <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {item.icon}
-              </svg>
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <item.icon className="h-5 w-5 shrink-0" strokeWidth={isActive ? 2 : 1.75} />
+                  <span className="flex-1">{item.label}</span>
+                  <ChevronRight
+                    className={`h-4 w-4 shrink-0 transition-opacity ${isActive ? 'opacity-60' : 'opacity-0'}`}
+                  />
+                </>
+              )}
             </NavLink>
           ))
         )}
@@ -220,14 +168,7 @@ export default function Layout() {
               onClick={logout}
               className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-tertiary-button bg-peace px-2.5 text-xs font-bold text-gray-600 shadow-sm transition-colors duration-200 hover:border-red-200 hover:bg-red-50 hover:text-danger"
             >
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-                />
-              </svg>
+              <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
               Sign out
             </button>
           </div>
@@ -247,9 +188,7 @@ export default function Layout() {
           aria-expanded={navOpen}
           className="-ml-2 rounded-lg p-2 text-foreground transition-colors duration-200 hover:bg-background"
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-          </svg>
+          <Menu className="h-6 w-6" strokeWidth={1.75} />
         </button>
         <img src="/logo.png" alt="Soul Paradise" className="h-10 w-auto" />
         <span className="truncate text-sm font-bold text-foreground">{currentLabel}</span>

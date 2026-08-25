@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useAccess } from '../hooks/useAccess';
@@ -116,9 +117,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-bold text-foreground">{s.label}</span>
-                  <svg className="h-4 w-4 shrink-0 text-links" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-links" strokeWidth={2} />
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-gray-500">{s.hint}</p>
               </Link>

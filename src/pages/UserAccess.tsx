@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
   type AccessLevel,
@@ -8,17 +8,27 @@ import {
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
 
-const PAGE_LABELS: Record<AdminPage, string> = {
-  DASHBOARD: 'Dashboard',
-  USERS: 'Users',
-  BOOKING_PARTNERS: 'Booking Partners',
-  COMMISSION: 'Commission',
-  COUPONS: 'Coupons',
-  OFFERS: 'Offers',
-  REVIEWS: 'Reviews',
-  UTILITIES: 'Utilities',
-  USER_ACCESS: 'User Access',
-  AUDIT_LOGS: 'Audit Logs',
+type LevelKey = 'NONE' | AccessLevel;
+
+/**
+ * What each grant actually opens up. The hint matters: a super admin handing
+ * out access should not have to guess what "Utilities" contains.
+ */
+const PAGE_META: Record<AdminPage, { label: string; hint: string; sensitive?: boolean }> = {
+  DASHBOARD: { label: 'Dashboard', hint: 'Platform totals and overview' },
+  USERS: { label: 'User Details', hint: 'Customer accounts and ticket history' },
+  BOOKING_PARTNERS: { label: 'Booking Partners', hint: 'Agent applications and approvals' },
+  COMMISSION: { label: 'Commission', hint: 'Service commission rates' },
+  COUPONS: { label: 'Coupons', hint: 'Discount codes and usage limits' },
+  OFFERS: { label: 'Offers', hint: 'Promotional offers on the homepage' },
+  REVIEWS: { label: 'Reviews', hint: 'Customer reviews and moderation' },
+  UTILITIES: { label: 'Utilities', hint: 'Reports and platform tools' },
+  USER_ACCESS: {
+    label: 'User Access',
+    hint: 'Admin permissions — this page',
+    sensitive: true,
+  },
+  AUDIT_LOGS: { label: 'Audit Logs', hint: 'Record of every admin action' },
 };
 
 /** Fallback ordering if the backend ever sends the pages unordered. */
@@ -35,37 +45,64 @@ const FALLBACK_PAGES: AdminPage[] = [
   'AUDIT_LOGS',
 ];
 
-/** None -> Read -> Write -> None. `undefined` is the absence of a grant. */
-function cycle(level: AccessLevel | undefined): AccessLevel | undefined {
-  if (level === undefined) return 'READ';
-  if (level === 'READ') return 'WRITE';
-  return undefined;
+const LEVELS: { key: LevelKey; label: string; on: string }[] = [
+  { key: 'NONE', label: 'None', on: 'bg-peace text-gray-600 ring-1 ring-gray-300' },
+  { key: 'READ', label: 'Read', on: 'bg-blue-50 text-links ring-1 ring-blue-200' },
+  { key: 'WRITE', label: 'Write', on: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+];
+
+function levelOf(map: PageAccessMap, page: AdminPage): LevelKey {
+  return map[page] ?? 'NONE';
 }
 
-const CELL_STYLES: Record<'NONE' | AccessLevel, string> = {
-  NONE: 'bg-gray-800 text-gray-600 border-gray-700',
-  READ: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  WRITE: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-};
+/** Pages whose grant differs between the saved row and the working copy. */
+function changedPages(saved: PageAccessMap, draft: PageAccessMap, pages: AdminPage[]): AdminPage[] {
+  return pages.filter((p) => levelOf(saved, p) !== levelOf(draft, p));
+}
 
-const CELL_TITLES: Record<'NONE' | AccessLevel, string> = {
-  NONE: 'No access',
-  READ: 'Read only',
-  WRITE: 'Read & write',
-};
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '')).toUpperCase();
+}
 
-const CELL_TEXT: Record<'NONE' | AccessLevel, string> = {
-  NONE: '—',
-  READ: 'R',
-  WRITE: 'W',
-};
-
-function sameMap(a: PageAccessMap, b: PageAccessMap): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<AdminPage>;
-  for (const key of keys) {
-    if (a[key] !== b[key]) return false;
-  }
-  return true;
+/** A three-way choice, spelled out. The old cell cycled None→Read→Write on
+ *  click, which gave no hint that a third state existed or how to go back. */
+function LevelPicker({
+  value,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: LevelKey;
+  onChange: (next: LevelKey) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={`Access level for ${label}`}
+      className="inline-flex shrink-0 rounded-lg bg-background p-0.5 ring-1 ring-tertiary-button"
+    >
+      {LEVELS.map((lvl) => {
+        const active = value === lvl.key;
+        return (
+          <button
+            key={lvl.key}
+            type="button"
+            disabled={disabled}
+            aria-pressed={active}
+            onClick={() => onChange(lvl.key)}
+            className={`rounded-[7px] px-2.5 py-1 text-xs font-bold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+              active ? lvl.on : 'text-gray-500 hover:text-foreground'
+            }`}
+          >
+            {lvl.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function UserAccess() {
@@ -74,8 +111,11 @@ export default function UserAccess() {
   const [pages, setPages] = useState<AdminPage[]>(FALLBACK_PAGES);
   const [admins, setAdmins] = useState<AdminAccessRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PageAccessMap>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -84,9 +124,7 @@ export default function UserAccess() {
       const data = await api.getAdminAccess();
       setPages(data.pages?.length ? data.pages : FALLBACK_PAGES);
       setAdmins(data.admins);
-      setDrafts(
-        Object.fromEntries(data.admins.map((a) => [a.id, { ...a.access }])),
-      );
+      setDrafts(Object.fromEntries(data.admins.map((a) => [a.id, { ...a.access }])));
     } catch {
       setMessage({ type: 'error', text: 'Failed to load admin access' });
     } finally {
@@ -105,20 +143,25 @@ export default function UserAccess() {
   }, [isSuperAdmin, load]);
 
   useEffect(() => {
-    if (message) {
-      const t = setTimeout(() => setMessage(null), 4000);
-      return () => clearTimeout(t);
-    }
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 4000);
+    return () => clearTimeout(t);
   }, [message]);
 
-  function toggleCell(adminId: string, page: AdminPage) {
+  function setLevel(adminId: string, page: AdminPage, next: LevelKey) {
     setDrafts((prev) => {
-      const current = prev[adminId] ?? {};
-      const next: PageAccessMap = { ...current };
-      const level = cycle(current[page]);
-      if (level === undefined) delete next[page];
-      else next[page] = level;
-      return { ...prev, [adminId]: next };
+      const map: PageAccessMap = { ...(prev[adminId] ?? {}) };
+      if (next === 'NONE') delete map[page];
+      else map[page] = next;
+      return { ...prev, [adminId]: map };
+    });
+  }
+
+  function setAll(adminId: string, next: LevelKey) {
+    setDrafts((prev) => {
+      const map: PageAccessMap = {};
+      if (next !== 'NONE') for (const p of pages) map[p] = next;
+      return { ...prev, [adminId]: map };
     });
   }
 
@@ -126,14 +169,20 @@ export default function UserAccess() {
     setDrafts((prev) => ({ ...prev, [admin.id]: { ...admin.access } }));
   }
 
-  async function saveRow(admin: AdminAccessRow) {
-    const draft = drafts[admin.id] ?? {};
-    setSavingId(admin.id);
-    try {
+  const saveRow = useCallback(
+    async (admin: AdminAccessRow, draft: PageAccessMap) => {
       // Wholesale replace: pages left at None are simply absent, and the
       // backend reads absence as revocation.
       await api.setAdminAccess(admin.id, draft);
-      setMessage({ type: 'success', text: `Access updated for ${admin.email}` });
+    },
+    [],
+  );
+
+  async function handleSave(admin: AdminAccessRow) {
+    setSavingId(admin.id);
+    try {
+      await saveRow(admin, drafts[admin.id] ?? {});
+      setMessage({ type: 'success', text: `Access updated for ${admin.name}` });
       await load();
     } catch (err) {
       const text = (err as { message?: string })?.message || 'Failed to update access';
@@ -143,184 +192,294 @@ export default function UserAccess() {
     }
   }
 
+  const editable = useMemo(
+    () => admins.filter((a) => a.role !== 'SUPER_ADMIN'),
+    [admins],
+  );
+
+  const dirtyAdmins = useMemo(
+    () => editable.filter((a) => changedPages(a.access, drafts[a.id] ?? {}, pages).length > 0),
+    [editable, drafts, pages],
+  );
+
+  async function handleSaveAll() {
+    setSavingAll(true);
+    const failed: string[] = [];
+    for (const admin of dirtyAdmins) {
+      try {
+        await saveRow(admin, drafts[admin.id] ?? {});
+      } catch {
+        failed.push(admin.name);
+      }
+    }
+    setSavingAll(false);
+    setMessage(
+      failed.length
+        ? { type: 'error', text: `Could not save: ${failed.join(', ')}` }
+        : { type: 'success', text: `Saved access for ${dirtyAdmins.length} admin${dirtyAdmins.length === 1 ? '' : 's'}` },
+    );
+    await load();
+  }
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return admins;
+    return admins.filter(
+      (a) => a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q),
+    );
+  }, [admins, search]);
+
   if (!isSuperAdmin) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center py-24">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 max-w-md text-center">
-            <div className="text-3xl mb-3">🔒</div>
-            <h1 className="text-base font-semibold text-white">Restricted</h1>
-            <p className="text-sm text-gray-500 mt-2">
-              Only a super admin can manage page access.
-            </p>
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto mt-16 max-w-md rounded-xl border border-tertiary-button bg-peace p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
+            <svg className="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
           </div>
+          <h1 className="mb-1 text-base font-bold text-foreground">Restricted</h1>
+          <p className="text-sm text-gray-500">Only a super admin can manage page access.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-white">User Access</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Grant each admin access to specific sections
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">User Access</h1>
+        <p className="mt-2 text-sm text-foreground">
+          Choose what each admin can open. A section left at <strong className="font-bold">None</strong> is
+          hidden from their sidebar and refused by the API.
         </p>
       </div>
 
-      {/* Message */}
       {message && (
         <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+          role="alert"
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm font-semibold ${
             message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-red-200 bg-red-50 text-red-700'
           }`}
         >
           {message.text}
         </div>
       )}
 
-      {/* Explainer + legend */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <p className="text-xs text-gray-500">
-          Admins see only the sections they're granted. Absence of a grant is a denial — a
-          section with no access is hidden from their sidebar entirely.
-        </p>
-        <div className="flex items-center gap-3 text-[11px] text-gray-500">
-          <span className="inline-flex items-center gap-1.5">
-            <span className={`inline-flex h-5 w-6 items-center justify-center rounded-md border text-[11px] font-semibold ${CELL_STYLES.NONE}`}>
-              —
-            </span>
-            None
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className={`inline-flex h-5 w-6 items-center justify-center rounded-md border text-[11px] font-semibold ${CELL_STYLES.READ}`}>
-              R
-            </span>
-            Read
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className={`inline-flex h-5 w-6 items-center justify-center rounded-md border text-[11px] font-semibold ${CELL_STYLES.WRITE}`}>
-              W
-            </span>
-            Write
-          </span>
+      {admins.length > 4 && (
+        <div className="mb-4">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search admins by name or email…"
+            className="block w-full rounded-lg border border-gray-300 bg-peace px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:max-w-sm"
+          />
         </div>
-      </div>
+      )}
 
-      {/* Matrix */}
       {loading ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
-      ) : admins.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
-          <p className="text-sm">No admins yet. Promote a user to admin to grant them access.</p>
+        <div className="space-y-4">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-xl border border-tertiary-button bg-peace p-5 shadow-sm">
+              <div className="h-4 w-40 animate-pulse rounded bg-tertiary-button" />
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, j) => (
+                  <div key={j} className="h-12 animate-pulse rounded-lg bg-background" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-xl border border-tertiary-button bg-peace py-16 text-center shadow-sm">
+          <p className="text-sm text-gray-500">
+            {search ? 'No admin matches that search.' : 'No admins yet. Promote a user to admin to grant them access.'}
+          </p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-900 z-10">
-                    Admin
-                  </th>
-                  {pages.map((page) => (
-                    <th
-                      key={page}
-                      className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center whitespace-nowrap"
+        <div className="space-y-4">
+          {visible.map((admin) => {
+            const isSuper = admin.role === 'SUPER_ADMIN';
+            const draft = drafts[admin.id] ?? {};
+            const changed = isSuper ? [] : changedPages(admin.access, draft, pages);
+            const saving = savingId === admin.id;
+            const isCollapsed = collapsed[admin.id] ?? false;
+
+            const granted = isSuper ? pages.length : pages.filter((p) => draft[p]).length;
+            const writes = isSuper ? pages.length : pages.filter((p) => draft[p] === 'WRITE').length;
+
+            return (
+              <section
+                key={admin.id}
+                className={`overflow-hidden rounded-xl border bg-peace shadow-sm transition-colors ${
+                  changed.length ? 'border-warn' : 'border-tertiary-button'
+                }`}
+              >
+                {/* Admin header */}
+                <div className="flex items-start gap-3 border-b border-tertiary-button p-4 sm:items-center">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-button text-xs font-bold text-peace">
+                    {initials(admin.name)}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-sm font-bold text-foreground">{admin.name}</span>
+                      {isSuper && (
+                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                          Super Admin
+                        </span>
+                      )}
+                      {!admin.isActive && (
+                        <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-600">
+                          Inactive
+                        </span>
+                      )}
+                      {changed.length > 0 && (
+                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                          {changed.length} unsaved
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-gray-500">{admin.email}</p>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="hidden text-xs font-semibold text-gray-500 sm:inline">
+                      {granted} of {pages.length} sections
+                      {writes > 0 && ` · ${writes} write`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCollapsed((c) => ({ ...c, [admin.id]: !isCollapsed }))}
+                      aria-expanded={!isCollapsed}
+                      aria-label={isCollapsed ? `Show sections for ${admin.name}` : `Hide sections for ${admin.name}`}
+                      className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-background hover:text-foreground"
                     >
-                      {PAGE_LABELS[page] ?? page}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/50">
-                {admins.map((admin) => {
-                  const isSuper = admin.role === 'SUPER_ADMIN';
-                  const draft = drafts[admin.id] ?? {};
-                  const dirty = !isSuper && !sameMap(draft, admin.access);
-                  const saving = savingId === admin.id;
+                      <svg
+                        className={`h-5 w-5 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
 
-                  return (
-                    <tr key={admin.id} className="hover:bg-gray-800/30 transition-colors">
-                      <td className="px-4 py-3 sticky left-0 bg-gray-900 z-10">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-white whitespace-nowrap">{admin.name}</span>
-                          {isSuper && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                              Super Admin
-                            </span>
-                          )}
-                          {!admin.isActive && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-gray-500/15 text-gray-400 border-gray-500/30">
-                              Inactive
-                            </span>
-                          )}
+                {!isCollapsed && (
+                  <>
+                    {isSuper ? (
+                      <p className="px-4 py-6 text-sm text-gray-500">
+                        Super admins always have full access to every section. There is nothing to
+                        configure here.
+                      </p>
+                    ) : (
+                      <>
+                        {/* Bulk actions — granting all ten one control at a time was 20 clicks. */}
+                        <div className="flex flex-wrap items-center gap-2 border-b border-tertiary-button bg-background px-4 py-2.5">
+                          <span className="mr-1 text-xs font-semibold text-gray-500">Set all:</span>
+                          {LEVELS.map((lvl) => (
+                            <button
+                              key={lvl.key}
+                              type="button"
+                              onClick={() => setAll(admin.id, lvl.key)}
+                              className="rounded-lg border border-tertiary-button bg-peace px-2.5 py-1 text-xs font-bold text-gray-600 transition-colors hover:border-secondary-button hover:text-foreground"
+                            >
+                              {lvl.label}
+                            </button>
+                          ))}
                         </div>
-                        <div className="text-xs text-gray-500 mt-0.5">{admin.email}</div>
-                      </td>
 
-                      {pages.map((page) => {
-                        if (isSuper) {
-                          return (
-                            <td key={page} className="px-3 py-3 text-center">
-                              <span
-                                title="Super admins always have full access"
-                                className={`inline-flex h-7 w-9 items-center justify-center rounded-md border text-xs font-semibold opacity-70 cursor-not-allowed ${CELL_STYLES.WRITE}`}
+                        <div className="grid gap-2 p-4 sm:grid-cols-2">
+                          {pages.map((page) => {
+                            const meta = PAGE_META[page] ?? { label: page, hint: '' };
+                            const level = levelOf(draft, page);
+                            const isChanged = changed.includes(page);
+
+                            return (
+                              <div
+                                key={page}
+                                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                                  isChanged ? 'border-amber-200 bg-amber-50/50' : 'border-tertiary-button'
+                                }`}
                               >
-                                W
-                              </span>
-                            </td>
-                          );
-                        }
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-bold text-foreground">{meta.label}</p>
+                                  <p className="truncate text-xs text-gray-500">
+                                    {meta.sensitive && level === 'WRITE'
+                                      ? 'Lets them change any admin’s access'
+                                      : meta.hint}
+                                  </p>
+                                </div>
+                                <LevelPicker
+                                  label={meta.label}
+                                  value={level}
+                                  disabled={saving || savingAll}
+                                  onChange={(next) => setLevel(admin.id, page, next)}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                        const level = draft[page];
-                        const key: 'NONE' | AccessLevel = level ?? 'NONE';
-
-                        return (
-                          <td key={page} className="px-3 py-3 text-center">
+                        {changed.length > 0 && (
+                          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-tertiary-button bg-background px-4 py-3">
+                            <span className="mr-auto text-xs font-semibold text-amber-700">
+                              {changed.length} section{changed.length === 1 ? '' : 's'} changed
+                            </span>
                             <button
                               type="button"
-                              onClick={() => toggleCell(admin.id, page)}
-                              title={`${PAGE_LABELS[page] ?? page} — ${CELL_TITLES[key]}`}
-                              className={`inline-flex h-7 w-9 items-center justify-center rounded-md border text-xs font-semibold transition-colors hover:brightness-125 ${CELL_STYLES[key]}`}
+                              onClick={() => resetRow(admin)}
+                              disabled={saving || savingAll}
+                              className="rounded-lg border border-tertiary-button bg-peace px-3 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:border-secondary-button hover:text-foreground disabled:opacity-50"
                             >
-                              {CELL_TEXT[key]}
+                              Discard
                             </button>
-                          </td>
-                        );
-                      })}
+                            <button
+                              type="button"
+                              onClick={() => handleSave(admin)}
+                              disabled={saving || savingAll}
+                              className="rounded-lg bg-primary-button px-4 py-1.5 text-xs font-bold text-peace shadow-sm transition-colors hover:bg-secondary-button disabled:opacity-50"
+                            >
+                              {saving ? 'Saving…' : 'Save changes'}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      )}
 
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 justify-end">
-                          {dirty && (
-                            <>
-                              <button
-                                onClick={() => saveRow(admin)}
-                                disabled={saving}
-                                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg transition-colors"
-                              >
-                                {saving ? 'Saving...' : 'Save'}
-                              </button>
-                              <button
-                                onClick={() => resetRow(admin)}
-                                disabled={saving}
-                                className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-50 rounded-lg transition-colors"
-                              >
-                                Reset
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* Catches the case of editing several admins and forgetting to save the
+          ones scrolled off screen. */}
+      {dirtyAdmins.length > 1 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary-button bg-peace/95 px-4 py-3 backdrop-blur-sm lg:left-64">
+          <div className="mx-auto flex max-w-5xl items-center gap-3">
+            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
+              {dirtyAdmins.length} admins have unsaved changes
+            </span>
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={savingAll}
+              className="shrink-0 rounded-lg bg-primary-button px-4 py-2 text-xs font-bold text-peace shadow-sm transition-colors hover:bg-secondary-button disabled:opacity-50 sm:text-sm"
+            >
+              {savingAll ? 'Saving…' : 'Save all'}
+            </button>
           </div>
         </div>
       )}

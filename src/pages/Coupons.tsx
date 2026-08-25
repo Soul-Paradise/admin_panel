@@ -20,13 +20,13 @@ const SERVICE_LABELS: Record<ServiceType, string> = {
 };
 
 const serviceBadgeColors: Record<ServiceType, string> = {
-  FLIGHT: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  HOTEL: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  TRAVEL_PLAN: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  INSURANCE: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  FLIGHT: 'bg-blue-50 text-links border-blue-200',
+  HOTEL: 'bg-amber-50 text-amber-700 border-amber-200',
+  TRAVEL_PLAN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  INSURANCE: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
-const ALL_SERVICES_BADGE = 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+const ALL_SERVICES_BADGE = 'bg-gray-100 text-gray-600 border-gray-300';
 
 const EMPTY_FORM = {
   code: '',
@@ -208,20 +208,20 @@ export default function Coupons() {
   const isPercentage = form.discountType === 'PERCENTAGE';
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-white">Coupons</h1>
+          <h1 className="text-xl font-semibold text-foreground">Coupons</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage promo codes and discounts</p>
           {!editable && (
-            <p className="text-xs text-gray-600 mt-1">You have read-only access to Coupons.</p>
+            <p className="text-xs text-gray-400 mt-1">You have read-only access to Coupons.</p>
           )}
         </div>
         {editable && (
           <button
             onClick={openCreate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors"
           >
             + New Coupon
           </button>
@@ -233,8 +233,8 @@ export default function Coupons() {
         <div
           className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
             message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}
         >
           {message.text}
@@ -243,37 +243,37 @@ export default function Coupons() {
 
       {/* Form */}
       {editable && showForm && (
-        <div className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+        <div className="mb-6 bg-peace border border-tertiary-button rounded-xl shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">
             {editingId ? 'Edit Coupon' : 'New Coupon'}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Code */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Code</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Code</label>
               <input
                 type="text"
                 value={form.code}
                 disabled={!!editingId}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-mono tracking-wider placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground font-mono tracking-wider placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-500"
                 placeholder="e.g. SOUL1500"
               />
               {editingId && (
-                <p className="text-[11px] text-gray-600 mt-1">Code cannot be changed after creation.</p>
+                <p className="text-[11px] text-gray-400 mt-1">Code cannot be changed after creation.</p>
               )}
             </div>
 
             {/* Service Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Service (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Service (optional)</label>
               <select
                 value={form.serviceType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, serviceType: e.target.value as ServiceType | '' }))
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               >
                 <option value="">All services</option>
                 {SERVICE_TYPES.map((s) => (
@@ -284,25 +284,25 @@ export default function Coupons() {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-400 mb-1">Description (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
                 placeholder="e.g. 20% off on international flight bookings"
               />
             </div>
 
             {/* Discount Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Discount Type</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Discount Type</label>
               <select
                 value={form.discountType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, discountType: e.target.value as CommissionType }))
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               >
                 {DISCOUNT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -314,7 +314,7 @@ export default function Coupons() {
 
             {/* Discount Value */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Discount Value</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Discount Value</label>
               <div className="relative">
                 <input
                   type="number"
@@ -323,7 +323,7 @@ export default function Coupons() {
                   step="any"
                   value={form.discountValue}
                   onChange={(e) => setForm((f) => ({ ...f, discountValue: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   placeholder={isPercentage ? '20' : '500'}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
@@ -334,7 +334,7 @@ export default function Coupons() {
 
             {/* Min Order Amount */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Min Order Amount (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Min Order Amount (optional)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -342,7 +342,7 @@ export default function Coupons() {
                   step="any"
                   value={form.minOrderAmount}
                   onChange={(e) => setForm((f) => ({ ...f, minOrderAmount: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   placeholder="No minimum"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
@@ -353,7 +353,7 @@ export default function Coupons() {
 
             {/* Max Discount */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Max Discount (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Max Discount (optional)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -362,7 +362,7 @@ export default function Coupons() {
                   disabled={!isPercentage}
                   value={isPercentage ? form.maxDiscount : ''}
                   onChange={(e) => setForm((f) => ({ ...f, maxDiscount: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
                   placeholder="No cap"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
@@ -370,7 +370,7 @@ export default function Coupons() {
                 </span>
               </div>
               {!isPercentage && (
-                <p className="text-[11px] text-gray-600 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   Only applies to percentage discounts.
                 </p>
               )}
@@ -378,17 +378,17 @@ export default function Coupons() {
 
             {/* Usage Limit */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Usage Limit (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Usage Limit (optional)</label>
               <input
                 type="number"
                 min={1}
                 step={1}
                 value={form.usageLimit}
                 onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 placeholder="Unlimited"
               />
-              <p className="text-[11px] text-gray-600 mt-1">Leave blank for unlimited redemptions.</p>
+              <p className="text-[11px] text-gray-400 mt-1">Leave blank for unlimited redemptions.</p>
             </div>
 
             {/* Is Active */}
@@ -400,45 +400,45 @@ export default function Coupons() {
                   onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-10 h-5 bg-tertiary-button peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
               </label>
-              <span className="text-sm text-gray-300">Active</span>
+              <span className="text-sm text-gray-700">Active</span>
             </div>
 
             {/* Valid From */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Valid From (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Valid From (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validFrom}
                 onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               />
             </div>
 
             {/* Valid Until */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Valid Until (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Valid Until (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validUntil}
                 onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-800">
+          <div className="flex gap-3 mt-4 pt-4 border-t border-tertiary-button">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-primary-button hover:bg-secondary-button disabled:opacity-50 text-peace text-sm font-medium rounded-lg transition-colors"
             >
               {saving ? 'Saving...' : editingId ? 'Update Coupon' : 'Create Coupon'}
             </button>
             <button
               onClick={closeForm}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-background hover:bg-tertiary-button text-gray-700 text-sm font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -450,14 +450,14 @@ export default function Coupons() {
       {loading ? (
         <div className="text-gray-500 text-sm">Loading...</div>
       ) : coupons.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">No coupons yet. Create one to start offering discounts.</p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead className="bg-background">
+              <tr className="border-b border-tertiary-button">
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
@@ -467,7 +467,7 @@ export default function Coupons() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody className="divide-y divide-tertiary-button">
               {coupons.map((coupon) => {
                 const redeemed = coupon.usageCount > 0;
                 const usagePercent =
@@ -477,15 +477,15 @@ export default function Coupons() {
                 const exhausted = coupon.usageLimit !== null && coupon.usageCount >= coupon.usageLimit;
 
                 return (
-                  <tr key={coupon.id} className="hover:bg-gray-800/30 transition-colors">
+                  <tr key={coupon.id} className="hover:bg-background transition-colors">
                     <td className="px-4 py-3">
-                      <div className="font-mono font-bold text-white tracking-wide">{coupon.code}</div>
+                      <div className="font-mono font-bold text-foreground tracking-wide">{coupon.code}</div>
                       {coupon.description && (
                         <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{coupon.description}</div>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-white font-medium">{formatDiscount(coupon)}</div>
+                      <div className="text-foreground font-medium">{formatDiscount(coupon)}</div>
                       {coupon.maxDiscount !== null && (
                         <div className="text-[11px] text-gray-500 mt-0.5">max {inr(coupon.maxDiscount)}</div>
                       )}
@@ -505,21 +505,21 @@ export default function Coupons() {
                       </span>
                     </td>
                     <td className="px-4 py-3 min-w-[7rem]">
-                      <div className="text-gray-400 text-xs">
+                      <div className="text-gray-600 text-xs">
                         {coupon.usageCount} / {coupon.usageLimit ?? '∞'}
                       </div>
                       {coupon.usageLimit !== null && (
-                        <div className="mt-1.5 h-1 w-20 bg-gray-800 rounded-full overflow-hidden">
+                        <div className="mt-1.5 h-1 w-20 bg-tertiary-button rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
-                              exhausted ? 'bg-red-500' : 'bg-blue-500'
+                              exhausted ? 'bg-red-500' : 'bg-links'
                             }`}
                             style={{ width: `${usagePercent}%` }}
                           />
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
+                    <td className="px-4 py-3 text-gray-600 text-xs">
                       {coupon.validFrom || coupon.validUntil ? (
                         <span>
                           {coupon.validFrom ? new Date(coupon.validFrom).toLocaleDateString() : '—'}
@@ -527,7 +527,7 @@ export default function Coupons() {
                           {coupon.validUntil ? new Date(coupon.validUntil).toLocaleDateString() : '∞'}
                         </span>
                       ) : (
-                        <span className="text-gray-600">Always</span>
+                        <span className="text-gray-400">Always</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -536,8 +536,8 @@ export default function Coupons() {
                           onClick={() => handleToggleActive(coupon)}
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-pointer transition-colors ${
                             coupon.isActive
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
-                              : 'bg-gray-500/15 text-gray-400 border-gray-500/30 hover:bg-gray-500/25'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
                           }`}
                         >
                           {coupon.isActive ? 'Active' : 'Inactive'}
@@ -546,8 +546,8 @@ export default function Coupons() {
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                             coupon.isActive
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                              : 'bg-gray-500/15 text-gray-400 border-gray-500/30'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-300'
                           }`}
                         >
                           {coupon.isActive ? 'Active' : 'Inactive'}
@@ -559,7 +559,7 @@ export default function Coupons() {
                         <div className="flex items-center gap-2 justify-end">
                           <button
                             onClick={() => openEdit(coupon)}
-                            className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button rounded-lg transition-colors"
                           >
                             Edit
                           </button>
@@ -569,14 +569,14 @@ export default function Coupons() {
                             <button
                               disabled
                               title="Redeemed coupons can't be deleted — deactivate instead"
-                              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800/50 rounded-lg cursor-not-allowed"
+                              className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-background rounded-lg cursor-not-allowed"
                             >
                               Delete
                             </button>
                           ) : (
                             <button
                               onClick={() => handleDelete(coupon)}
-                              className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
+                              className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                             >
                               Delete
                             </button>

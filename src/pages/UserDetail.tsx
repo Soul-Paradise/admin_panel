@@ -10,23 +10,23 @@ import {
 } from '../lib/api';
 
 const roleBadgeColors: Record<UserRole, string> = {
-  USER: 'bg-green-500/15 text-green-400 border-green-500/30',
-  AGENT: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  ADMIN: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  SUPER_ADMIN: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  USER: 'bg-green-50 text-green-700 border-green-200',
+  AGENT: 'bg-amber-50 text-amber-700 border-amber-200',
+  ADMIN: 'bg-purple-50 text-purple-700 border-purple-200',
+  SUPER_ADMIN: 'bg-blue-50 text-links border-blue-200',
 };
 
 const agentStatusColors: Record<AgentStatus, string> = {
-  PENDING: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  UNDER_REVIEW: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  APPROVED: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  REJECTED: 'bg-red-500/15 text-red-400 border-red-500/30',
+  PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
+  UNDER_REVIEW: 'bg-blue-50 text-links border-blue-200',
+  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  REJECTED: 'bg-red-50 text-red-700 border-red-200',
 };
 
 const typeBadgeColors: Record<BookingType, string> = {
-  FLIGHT: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  HOTEL: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  INSURANCE: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  FLIGHT: 'bg-blue-50 text-links border-blue-200',
+  HOTEL: 'bg-amber-50 text-amber-700 border-amber-200',
+  INSURANCE: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 const typeBorderColors: Record<BookingType, string> = {
@@ -35,7 +35,7 @@ const typeBorderColors: Record<BookingType, string> = {
   INSURANCE: 'border-l-purple-500',
 };
 
-const GRAY_BADGE = 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+const GRAY_BADGE = 'bg-gray-100 text-gray-600 border-gray-300';
 
 /**
  * Status strings come straight from three different booking tables (and, through
@@ -47,13 +47,13 @@ function statusBadgeColor(status: string): string {
     case 'CONFIRMED':
     case 'SUCCESS':
     case 'PAID':
-      return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     case 'PENDING':
     case 'INITIATED':
-      return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+      return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'FAILED':
     case 'CANCELLED':
-      return 'bg-red-500/15 text-red-400 border-red-500/30';
+      return 'bg-red-50 text-red-700 border-red-200';
     default:
       return GRAY_BADGE;
   }
@@ -80,8 +80,8 @@ const FILTERS: Array<{ key: 'ALL' | BookingType; label: string }> = [
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wider text-gray-600">{label}</p>
-      <p className={`text-sm text-gray-300 mt-0.5 ${mono ? 'font-mono' : ''}`}>{value}</p>
+      <p className="text-[11px] uppercase tracking-wider text-gray-400">{label}</p>
+      <p className={`text-sm text-gray-700 mt-0.5 ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }
@@ -89,7 +89,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 function BookingCard({ booking }: { booking: UserBooking }) {
   return (
     <div
-      className={`bg-gray-900 border border-gray-800 border-l-4 ${typeBorderColors[booking.type] ?? 'border-l-gray-600'} rounded-xl p-5`}
+      className={`bg-peace border border-tertiary-button border-l-4 ${typeBorderColors[booking.type] ?? 'border-l-gray-600'} rounded-xl p-5`}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
@@ -106,7 +106,7 @@ function BookingCard({ booking }: { booking: UserBooking }) {
           <span className="text-xs font-mono text-gray-500">{booking.bookingId}</span>
         </div>
         <div className="text-right">
-          <p className="text-base font-semibold text-white">{money(booking.totalAmount)}</p>
+          <p className="text-base font-semibold text-foreground">{money(booking.totalAmount)}</p>
           <p className="text-xs text-gray-500 mt-0.5">{formatDate(booking.createdAt)}</p>
         </div>
       </div>
@@ -116,8 +116,8 @@ function BookingCard({ booking }: { booking: UserBooking }) {
         {booking.type === 'FLIGHT' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-600">Route</p>
-              <p className="text-sm font-medium text-white mt-0.5">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400">Route</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">
                 {booking.fromCode ?? '—'} → {booking.toCode ?? '—'}
               </p>
             </div>
@@ -134,13 +134,13 @@ function BookingCard({ booking }: { booking: UserBooking }) {
         {booking.type === 'HOTEL' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-600">Hotel</p>
-              <p className="text-sm font-medium text-white mt-0.5">{booking.hotelName ?? '—'}</p>
+              <p className="text-[11px] uppercase tracking-wider text-gray-400">Hotel</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">{booking.hotelName ?? '—'}</p>
             </div>
             <Field label="City" value={booking.city ?? '—'} />
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-600">Stay</p>
-              <p className="text-sm text-gray-300 mt-0.5">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400">Stay</p>
+              <p className="text-sm text-gray-700 mt-0.5">
                 {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}
               </p>
             </div>
@@ -152,12 +152,12 @@ function BookingCard({ booking }: { booking: UserBooking }) {
         {booking.type === 'INSURANCE' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-600">Policy Type</p>
-              <p className="text-sm font-medium text-white mt-0.5">{booking.policyType ?? '—'}</p>
+              <p className="text-[11px] uppercase tracking-wider text-gray-400">Policy Type</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">{booking.policyType ?? '—'}</p>
             </div>
             <div className="col-span-2 md:col-span-2">
-              <p className="text-[11px] uppercase tracking-wider text-gray-600">Cover Period</p>
-              <p className="text-sm text-gray-300 mt-0.5">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400">Cover Period</p>
+              <p className="text-sm text-gray-700 mt-0.5">
                 {formatDate(booking.startDate)} → {formatDate(booking.endDate)}
               </p>
             </div>
@@ -171,11 +171,11 @@ function BookingCard({ booking }: { booking: UserBooking }) {
       </div>
 
       {booking.promoCode && (
-        <div className="mt-4 pt-3 border-t border-gray-800 flex items-center gap-2">
-          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+        <div className="mt-4 pt-3 border-t border-tertiary-button flex items-center gap-2">
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
             Coupon: {booking.promoCode}
           </span>
-          <span className="text-xs text-emerald-400">−{money(booking.discountAmount)}</span>
+          <span className="text-xs text-emerald-700">−{money(booking.discountAmount)}</span>
         </div>
       )}
     </div>
@@ -226,7 +226,7 @@ export default function UserDetail() {
   const backLink = (
     <button
       onClick={() => navigate('/users')}
-      className="text-sm text-gray-500 hover:text-gray-300 transition-colors mb-6"
+      className="text-sm text-gray-500 hover:text-foreground transition-colors mb-6"
     >
       ← Back to users
     </button>
@@ -234,7 +234,7 @@ export default function UserDetail() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {backLink}
         <div className="text-gray-500 text-sm">Loading...</div>
       </div>
@@ -243,9 +243,9 @@ export default function UserDetail() {
 
   if (error || !data) {
     return (
-      <div className="p-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {backLink}
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
           {error ?? 'User not found'}
         </div>
       </div>
@@ -263,13 +263,13 @@ export default function UserDetail() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {backLink}
 
       {/* Profile header */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
+      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6 mb-6">
         <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-medium shrink-0">
+          <div className="w-14 h-14 bg-primary-button rounded-full flex items-center justify-center text-peace text-xl font-medium shrink-0">
             {user.profilePicture ? (
               <img src={user.profilePicture} alt="" className="w-14 h-14 rounded-full object-cover" />
             ) : (
@@ -279,7 +279,7 @@ export default function UserDetail() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-white truncate">{user.name}</h1>
+              <h1 className="text-xl font-semibold text-foreground truncate">{user.name}</h1>
               <span
                 className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${roleBadgeColors[user.role] ?? GRAY_BADGE}`}
               >
@@ -288,7 +288,7 @@ export default function UserDetail() {
               <span
                 className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
                   user.emailVerified
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : GRAY_BADGE
                 }`}
               >
@@ -297,8 +297,8 @@ export default function UserDetail() {
               <span
                 className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
                   user.isActive
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'bg-red-500/15 text-red-400 border-red-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
                 }`}
               >
                 {user.isActive ? 'Active' : 'Inactive'}
@@ -320,12 +320,12 @@ export default function UserDetail() {
 
       {/* Booking partner */}
       {user.agentProfile && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-5 mb-6">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
             Booking Partner
           </p>
           <div className="flex items-center gap-3 flex-wrap">
-            <p className="text-sm font-medium text-white">{user.agentProfile.agencyName}</p>
+            <p className="text-sm font-medium text-foreground">{user.agentProfile.agencyName}</p>
             <span
               className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                 agentStatusColors[user.agentProfile.status] ?? GRAY_BADGE
@@ -340,27 +340,27 @@ export default function UserDetail() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <div key={stat.label} className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
             <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
               {stat.label}
             </p>
-            <p className="text-xl font-semibold text-white mt-1.5">{stat.value}</p>
+            <p className="text-xl font-semibold text-foreground mt-1.5">{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Ticket history */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Ticket History</h2>
-        <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Ticket History</h2>
+        <div className="flex gap-1 bg-peace border border-tertiary-button rounded-lg p-1">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 filter === f.key
-                  ? 'bg-blue-600/15 text-blue-400'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-primary-button/15 text-links'
+                  : 'text-gray-500 hover:text-foreground'
               }`}
             >
               {f.label}
@@ -370,11 +370,11 @@ export default function UserDetail() {
       </div>
 
       {data.bookings.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">This user hasn't booked anything yet.</p>
         </div>
       ) : bookings.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">No bookings in this category.</p>
         </div>
       ) : (

@@ -23,7 +23,7 @@ function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-sm leading-none tracking-tight" title={`${filled} of 5`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= filled ? 'text-amber-400' : 'text-gray-700'}>
+        <span key={i} className={i <= filled ? 'text-amber-700' : 'text-gray-700'}>
           ★
         </span>
       ))}
@@ -129,15 +129,15 @@ export default function Reviews() {
   }
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-white">Reviews</h1>
+          <h1 className="text-xl font-semibold text-foreground">Reviews</h1>
           <p className="text-sm text-gray-500 mt-0.5">Moderate customer testimonials</p>
         </div>
         {!writable && (
-          <span className="text-xs font-medium text-gray-500 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-1.5">
+          <span className="text-xs font-medium text-gray-500 bg-background border border-gray-300 rounded-lg px-3 py-1.5">
             Read-only access
           </span>
         )}
@@ -148,8 +148,8 @@ export default function Reviews() {
         <div
           className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
             message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}
         >
           {message.text}
@@ -157,20 +157,20 @@ export default function Reviews() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 mb-5 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 mb-5 bg-peace border border-tertiary-button rounded-xl shadow-sm p-1 w-fit">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => selectTab(t.key)}
             className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               tab === t.key
-                ? 'bg-gray-800 text-white'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'bg-tertiary-button text-foreground'
+                : 'text-gray-600 hover:text-foreground'
             }`}
           >
             {t.label}
             {t.key === 'pending' && pendingCount !== null && pendingCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              <span className="inline-flex items-center justify-center min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                 {pendingCount}
               </span>
             )}
@@ -182,7 +182,7 @@ export default function Reviews() {
       {loading ? (
         <div className="text-gray-500 text-sm">Loading...</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">{EMPTY_COPY[tab]}</p>
         </div>
       ) : (
@@ -190,30 +190,30 @@ export default function Reviews() {
           {items.map((t) => (
             <div
               key={t.id}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors"
+              className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-5 hover:border-secondary-button transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-semibold text-white">{t.name}</span>
+                    <span className="font-semibold text-foreground">{t.name}</span>
                     <Stars rating={t.rating} />
                     {t.service && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-500/15 text-blue-400 border-blue-500/30">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-50 text-links border-blue-200">
                         {t.service}
                       </span>
                     )}
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                         t.isApproved
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-gray-500/15 text-gray-400 border-gray-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-gray-100 text-gray-600 border-gray-300'
                       }`}
                     >
                       {t.isApproved ? 'Approved' : 'Pending'}
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-300 mt-3 whitespace-pre-wrap break-words">
+                  <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap break-words">
                     {t.review}
                   </p>
 
@@ -228,7 +228,7 @@ export default function Reviews() {
                       <button
                         onClick={() => handleApproval(t, false)}
                         disabled={busyId === t.id}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-50 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-50 rounded-lg transition-colors"
                       >
                         Unapprove
                       </button>
@@ -236,7 +236,7 @@ export default function Reviews() {
                       <button
                         onClick={() => handleApproval(t, true)}
                         disabled={busyId === t.id}
-                        className="px-3 py-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 rounded-lg transition-colors"
                       >
                         Approve
                       </button>
@@ -244,7 +244,7 @@ export default function Reviews() {
                     <button
                       onClick={() => handleDelete(t)}
                       disabled={busyId === t.id}
-                      className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 rounded-lg transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 disabled:opacity-50 rounded-lg transition-colors"
                     >
                       Delete
                     </button>
@@ -262,7 +262,7 @@ export default function Reviews() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background rounded-lg transition-colors"
           >
             Previous
           </button>
@@ -272,7 +272,7 @@ export default function Reviews() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background rounded-lg transition-colors"
           >
             Next
           </button>

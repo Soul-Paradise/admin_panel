@@ -23,15 +23,15 @@ export default function SectionRoute({
 
   if (isLoading) {
     return (
-      <div className="p-6 text-sm text-gray-500">Loading…</div>
+      <div className="p-4 text-sm text-gray-500 sm:p-6">Loading…</div>
     );
   }
 
   if (!canRead(page)) {
     return (
-      <div className="p-6">
-        <div className="max-w-md mx-auto mt-24 bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+      <div className="px-4 py-6 sm:px-6">
+        <div className="mx-auto mt-16 max-w-md rounded-xl border border-tertiary-button bg-peace p-6 text-center shadow-sm sm:mt-24 sm:p-8">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
             <svg
               className="w-6 h-6 text-gray-500"
               fill="none"
@@ -46,7 +46,7 @@ export default function SectionRoute({
               />
             </svg>
           </div>
-          <h2 className="text-sm font-semibold text-white mb-1">
+          <h2 className="mb-1 text-base font-bold text-foreground">
             No access to this section
           </h2>
           <p className="text-sm text-gray-500 mb-5">
@@ -54,7 +54,7 @@ export default function SectionRoute({
           </p>
           <Link
             to="/"
-            className="inline-block px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors"
+            className="inline-block rounded-lg bg-primary-button px-4 py-2 text-sm font-semibold text-peace shadow-sm transition-colors duration-200 hover:bg-secondary-button"
           >
             Back to dashboard
           </Link>

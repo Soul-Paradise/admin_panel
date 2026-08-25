@@ -21,9 +21,9 @@ function shortDate(iso: string): string {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+    <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-white mt-1.5">{value}</p>
+      <p className="text-2xl font-bold text-foreground mt-1.5">{value}</p>
     </div>
   );
 }
@@ -46,13 +46,13 @@ function BreakdownCard({
   rows: { label: string; value: string | number; tone?: string }[];
 }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+    <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{title}</p>
       <div className="space-y-2">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">{r.label}</span>
-            <span className={`text-sm font-semibold ${r.tone ?? 'text-white'}`}>{r.value}</span>
+            <span className="text-sm text-gray-600">{r.label}</span>
+            <span className={`text-sm font-semibold ${r.tone ?? 'text-foreground'}`}>{r.value}</span>
           </div>
         ))}
       </div>
@@ -92,22 +92,22 @@ export default function Utilities() {
   );
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-white">Utilities</h1>
+          <h1 className="text-xl font-semibold text-foreground">Utilities</h1>
           <p className="text-sm text-gray-500 mt-0.5">Operational stats at a glance</p>
         </div>
 
         {/* Range selector */}
-        <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-peace border border-tertiary-button rounded-xl shadow-sm p-1">
           {RANGES.map((r) => (
             <button
               key={r.key}
               onClick={() => setRange(r.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                range === r.key ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-gray-200'
+                range === r.key ? 'bg-tertiary-button text-foreground' : 'text-gray-600 hover:text-foreground'
               }`}
             >
               {r.label}
@@ -117,7 +117,7 @@ export default function Utilities() {
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
           {error}
         </div>
       )}
@@ -128,17 +128,17 @@ export default function Utilities() {
             {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
               <div
                 key={i}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 animate-pulse"
+                className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-4 animate-pulse"
               >
-                <div className="h-3 w-20 bg-gray-800 rounded" />
-                <div className="h-6 w-14 bg-gray-800 rounded mt-3" />
+                <div className="h-3 w-20 bg-tertiary-button rounded" />
+                <div className="h-6 w-14 bg-tertiary-button rounded mt-3" />
               </div>
             ))}
           </div>
-          <div className="h-48 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+          <div className="h-48 bg-peace border border-tertiary-button rounded-xl shadow-sm animate-pulse" />
         </div>
       ) : !overview ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">No analytics available.</p>
         </div>
       ) : (
@@ -149,7 +149,7 @@ export default function Utilities() {
               {overview.notes.map((note, i) => (
                 <div
                   key={i}
-                  className="px-4 py-3 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  className="px-4 py-3 rounded-lg text-sm bg-amber-50 text-amber-700 border border-amber-200"
                 >
                   {note}
                 </div>
@@ -224,15 +224,15 @@ export default function Utilities() {
               <div className="md:col-span-1" />
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mt-4">
+            <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-x-auto mt-4">
               {overview.coupons.topCodes.length === 0 ? (
-                <div className="text-center py-10 text-gray-600">
+                <div className="text-center py-10 text-gray-400">
                   <p className="text-sm">No coupon redemptions recorded.</p>
                 </div>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-800">
+                <table className="w-full min-w-[680px] text-sm">
+                  <thead className="bg-background">
+                    <tr className="border-b border-tertiary-button">
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Code
                       </th>
@@ -244,12 +244,12 @@ export default function Utilities() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/50">
+                  <tbody className="divide-y divide-tertiary-button">
                     {overview.coupons.topCodes.map((c) => (
-                      <tr key={c.code} className="hover:bg-gray-800/30 transition-colors">
-                        <td className="px-4 py-3 font-medium text-white">{c.code}</td>
-                        <td className="px-4 py-3 text-gray-400">{c.uses}</td>
-                        <td className="px-4 py-3 text-gray-400">{money(c.discount)}</td>
+                      <tr key={c.code} className="hover:bg-background transition-colors">
+                        <td className="px-4 py-3 font-medium text-foreground">{c.code}</td>
+                        <td className="px-4 py-3 text-gray-600">{c.uses}</td>
+                        <td className="px-4 py-3 text-gray-600">{money(c.discount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -264,25 +264,25 @@ export default function Utilities() {
               <BreakdownCard
                 title="Partners"
                 rows={[
-                  { label: 'Total', value: overview.partners.total, tone: 'text-gray-200' },
-                  { label: 'Active', value: overview.partners.active, tone: 'text-emerald-400' },
-                  { label: 'Revoked', value: overview.partners.revoked, tone: 'text-red-400' },
+                  { label: 'Total', value: overview.partners.total, tone: 'text-foreground' },
+                  { label: 'Active', value: overview.partners.active, tone: 'text-emerald-700' },
+                  { label: 'Revoked', value: overview.partners.revoked, tone: 'text-red-700' },
                 ]}
               />
               <BreakdownCard
                 title="Reviews"
                 rows={[
-                  { label: 'Pending', value: overview.reviews.pending, tone: 'text-amber-400' },
-                  { label: 'Approved', value: overview.reviews.approved, tone: 'text-emerald-400' },
+                  { label: 'Pending', value: overview.reviews.pending, tone: 'text-amber-700' },
+                  { label: 'Approved', value: overview.reviews.approved, tone: 'text-emerald-700' },
                   { label: 'Total', value: overview.reviews.total },
                 ]}
               />
               <BreakdownCard
                 title="Contacts"
                 rows={[
-                  { label: 'Pending', value: overview.contacts.pending, tone: 'text-amber-400' },
-                  { label: 'Sent', value: overview.contacts.sent, tone: 'text-emerald-400' },
-                  { label: 'Failed', value: overview.contacts.failed, tone: 'text-red-400' },
+                  { label: 'Pending', value: overview.contacts.pending, tone: 'text-amber-700' },
+                  { label: 'Sent', value: overview.contacts.sent, tone: 'text-emerald-700' },
+                  { label: 'Failed', value: overview.contacts.failed, tone: 'text-red-700' },
                 ]}
               />
               <BreakdownCard
@@ -291,17 +291,17 @@ export default function Utilities() {
                   {
                     label: 'Paid',
                     value: `${overview.payments.paid.count} · ${money(overview.payments.paid.amount)}`,
-                    tone: 'text-emerald-400',
+                    tone: 'text-emerald-700',
                   },
                   {
                     label: 'Failed',
                     value: overview.payments.failed.count,
-                    tone: 'text-red-400',
+                    tone: 'text-red-700',
                   },
                   {
                     label: 'Refunded',
                     value: `${overview.payments.refunded.count} · ${money(overview.payments.refunded.amount)}`,
-                    tone: 'text-gray-300',
+                    tone: 'text-gray-700',
                   },
                 ]}
               />
@@ -310,22 +310,22 @@ export default function Utilities() {
 
           {/* Daily bookings chart */}
           <Section title="Daily bookings">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-5">
               {/* Legend */}
               <div className="flex items-center gap-4 mb-5">
-                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> Flights
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-links" /> Flights
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
                   <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" /> Hotels
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
                   <span className="w-2.5 h-2.5 rounded-sm bg-purple-500" /> Insurance
                 </span>
               </div>
 
               {daily.length === 0 ? (
-                <div className="text-center py-10 text-gray-600">
+                <div className="text-center py-10 text-gray-400">
                   <p className="text-sm">No bookings in this range.</p>
                 </div>
               ) : (
@@ -342,7 +342,7 @@ export default function Utilities() {
                           title={`${shortDate(d.date)} — Flights: ${d.flights}, Hotels: ${d.hotels}, Insurance: ${d.insurance} (total ${total})`}
                         >
                           <span className="text-[11px] text-gray-500 mb-1">{total || ''}</span>
-                          <div className="w-full flex flex-col justify-end flex-1 rounded-t-md overflow-hidden bg-gray-800/40">
+                          <div className="w-full flex flex-col justify-end flex-1 rounded-t-md overflow-hidden bg-background">
                             <div
                               className="w-full bg-purple-500"
                               style={{ height: `${pct(d.insurance)}%` }}
@@ -352,7 +352,7 @@ export default function Utilities() {
                               style={{ height: `${pct(d.hotels)}%` }}
                             />
                             <div
-                              className="w-full bg-blue-500"
+                              className="w-full bg-links"
                               style={{ height: `${pct(d.flights)}%` }}
                             />
                           </div>

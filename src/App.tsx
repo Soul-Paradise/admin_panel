@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AccessProvider } from './contexts/AccessContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
+import PageLoader from './components/PageLoader';
 import SectionRoute from './components/SectionRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -22,11 +23,7 @@ function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (isAuthenticated) {

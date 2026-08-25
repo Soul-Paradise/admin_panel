@@ -17,8 +17,8 @@ const ACCESS_TABS: Array<{ id: AccessTab; label: string }> = [
 
 function accessBadge(isActive: boolean): { label: string; className: string } {
   return isActive
-    ? { label: 'Active', className: 'bg-green-500/15 text-green-400 border-green-500/30' }
-    : { label: 'Revoked', className: 'bg-red-500/15 text-red-400 border-red-500/30' };
+    ? { label: 'Active', className: 'bg-green-50 text-green-700 border-green-200' }
+    : { label: 'Revoked', className: 'bg-red-50 text-red-700 border-red-200' };
 }
 
 const DOC_LABELS: Record<string, string> = {
@@ -152,10 +152,10 @@ export default function Agents() {
   };
 
   return (
-    <div className="p-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Booking Partners</h1>
+          <h1 className="text-2xl font-bold text-foreground">Booking Partners</h1>
           <p className="text-sm text-gray-500 mt-1">
             Booking partners are active as soon as they register. Review their KYC
             details and revoke or restore access here.
@@ -167,8 +167,8 @@ export default function Agents() {
         <div
           className={`mb-6 flex items-start justify-between gap-4 px-4 py-3 rounded-lg border ${
             message.type === 'success'
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
-              : 'bg-red-500/10 border-red-500/30 text-red-400'
+              ? 'bg-green-50 border-green-200 text-green-700'
+              : 'bg-red-50 border-red-200 text-red-700'
           }`}
         >
           <span className="text-sm">{message.text}</span>
@@ -182,20 +182,20 @@ export default function Agents() {
         </div>
       )}
 
-      <div className="flex gap-1 mb-6 border-b border-gray-800">
+      <div className="flex gap-1 mb-6 border-b border-tertiary-button">
         {ACCESS_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === t.id
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-gray-400 hover:text-gray-200'
+                ? 'border-blue-500 text-links'
+                : 'border-transparent text-gray-600 hover:text-foreground'
             }`}
           >
             {t.label}
             {t.id === 'REVOKED' && revokedCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                 {revokedCount}
               </span>
             )}
@@ -214,8 +214,8 @@ export default function Agents() {
       ) : loading ? (
         <p className="text-gray-500">Loading…</p>
       ) : items.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl px-6 py-12 text-center">
-          <p className="text-gray-400">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm px-6 py-12 text-center">
+          <p className="text-gray-600">
             {tab === 'REVOKED'
               ? 'No revoked partners.'
               : tab === 'ACTIVE'
@@ -224,10 +224,10 @@ export default function Agents() {
           </p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
+            <table className="w-full min-w-[680px]">
+              <thead className="bg-background">
                 <tr>
                   {['Agency', 'Contact', 'Location', 'Registered', 'Access', ''].map(
                     (h) => (
@@ -241,23 +241,23 @@ export default function Agents() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-tertiary-button">
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-800/50">
+                  <tr key={item.id} className="hover:bg-background">
                     <td className="px-5 py-4">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-foreground">
                         {item.agencyName}
                       </p>
                       <p className="text-xs text-gray-500">{item.user.name}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm text-gray-300">{item.user.email}</p>
+                      <p className="text-sm text-gray-700">{item.user.email}</p>
                       <p className="text-xs text-gray-500">{item.contactPhone}</p>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-300">
+                    <td className="px-5 py-4 text-sm text-gray-700">
                       {item.city}, {item.state}
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-400">
+                    <td className="px-5 py-4 text-sm text-gray-600">
                       {formatDate(item.submittedAt)}
                     </td>
                     <td className="px-5 py-4">
@@ -271,7 +271,7 @@ export default function Agents() {
                       <button
                         onClick={() => void openDetail(item.id)}
                         disabled={detailLoading}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 border border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 border border-gray-300 text-gray-700 hover:bg-background"
                       >
                         View
                       </button>
@@ -325,15 +325,15 @@ function ApplicationDetail({
     <div className="space-y-6">
       <button
         onClick={onBack}
-        className="text-sm font-medium text-gray-400 hover:text-white"
+        className="text-sm font-medium text-gray-600 hover:text-foreground"
       >
         &larr; Back to list
       </button>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-foreground">
               {application.agencyName}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -368,7 +368,7 @@ function ApplicationDetail({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mt-6 pt-6 border-t border-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mt-6 pt-6 border-t border-tertiary-button">
           <RevealableField
             label="PAN"
             masked={application.panNumberMasked}
@@ -384,8 +384,8 @@ function ApplicationDetail({
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h3 className="text-sm font-semibold text-white mb-1">Documents</h3>
+      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-1">Documents</h3>
         <p className="text-xs text-gray-500 mb-4">
           Opening a document is recorded in the audit log.
         </p>
@@ -403,24 +403,24 @@ function ApplicationDetail({
       </div>
 
       {application.rejectionReason && (
-        <div className="bg-red-500/5 border border-red-500/30 rounded-xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-red-400 mb-1">
+        <div className="bg-red-500/5 border border-red-200 rounded-xl p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-red-700 mb-1">
             Previous rejection reason
           </p>
-          <p className="text-sm text-gray-300">{application.rejectionReason}</p>
+          <p className="text-sm text-gray-700">{application.rejectionReason}</p>
         </div>
       )}
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h3 className="text-sm font-semibold text-white mb-4">Audit trail</h3>
+      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Audit trail</h3>
         <ol className="space-y-3">
           {application.events.map((event) => (
             <li key={event.id} className="flex gap-3 text-sm">
-              <span className="text-gray-600 shrink-0 w-28">
+              <span className="text-gray-400 shrink-0 w-28">
                 {formatDate(event.createdAt)}
               </span>
-              <span className="text-gray-300">
-                <strong className="text-white">{event.action}</strong>
+              <span className="text-gray-700">
+                <strong className="text-foreground">{event.action}</strong>
                 {event.actor && (
                   <span className="text-gray-500"> by {event.actor.name}</span>
                 )}
@@ -445,7 +445,7 @@ function ApplicationDetail({
           </p>
           <button
             onClick={() => onAccessChange(application, 'revoke')}
-            className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-peace text-sm font-semibold transition-colors"
           >
             Revoke access
           </button>
@@ -457,7 +457,7 @@ function ApplicationDetail({
           </p>
           <button
             onClick={() => onAccessChange(application, 'restore')}
-            className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-peace text-sm font-semibold transition-colors"
           >
             Restore access
           </button>
@@ -515,9 +515,9 @@ function DocumentCard({
     <button
       onClick={() => void open()}
       disabled={opening}
-      className="flex flex-col items-start gap-1 px-4 py-3 rounded-lg border border-gray-800 bg-gray-800/40 hover:border-blue-500/50 hover:bg-gray-800 transition-colors text-left disabled:opacity-50"
+      className="flex flex-col items-start gap-1 px-4 py-3 rounded-lg border border-tertiary-button bg-background hover:border-blue-300 hover:bg-background transition-colors text-left disabled:opacity-50"
     >
-      <span className="text-sm font-medium text-white">
+      <span className="text-sm font-medium text-foreground">
         {DOC_LABELS[doc.type] ?? doc.type}
       </span>
       <span className="text-xs text-gray-500">
@@ -541,8 +541,8 @@ function Field({
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
         {label}
       </p>
-      <p className="text-sm text-gray-200">{value}</p>
-      {hint && <p className="text-xs text-amber-400 mt-0.5">{hint}</p>}
+      <p className="text-sm text-foreground">{value}</p>
+      {hint && <p className="text-xs text-amber-700 mt-0.5">{hint}</p>}
     </div>
   );
 }
@@ -564,11 +564,11 @@ function RevealableField({
         {label}
       </p>
       <div className="flex items-center gap-3">
-        <p className="text-sm font-mono text-gray-200">{revealed ?? masked}</p>
+        <p className="text-sm font-mono text-foreground">{revealed ?? masked}</p>
         {!revealed && (
           <button
             onClick={onReveal}
-            className="text-xs font-medium text-blue-400 hover:text-blue-300"
+            className="text-xs font-medium text-links hover:text-blue-800"
           >
             Reveal
           </button>

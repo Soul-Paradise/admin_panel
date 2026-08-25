@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useAccess } from '../hooks/useAccess';
@@ -13,7 +14,7 @@ interface NavItem {
 }
 
 /**
- * The nine sections, in the order the sidebar shows them. `page` ties each entry
+ * The ten sections, in the order the sidebar shows them. `page` ties each entry
  * to the backend AdminPage grant that governs it — an admin without a grant
  * never sees the link, and the API would refuse them anyway.
  */
@@ -101,93 +102,182 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+function initials(name: string | undefined): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return ((parts[0][0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '')).toUpperCase();
+}
+
 const linkClasses = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
     isActive
-      ? 'bg-blue-600/15 text-blue-400'
-      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+      ? 'bg-tertiary-button font-bold text-active'
+      : 'font-semibold text-inactive hover:bg-background hover:text-active'
   }`;
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { canRead, isSuperAdmin, isLoading } = useAccess();
+  const { pathname } = useLocation();
+  const [navOpen, setNavOpen] = useState(false);
 
   const visibleItems = NAV_ITEMS.filter((item) => canRead(item.page));
+  const currentLabel =
+    NAV_ITEMS.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)))?.label ??
+    'Admin Panel';
 
-  return (
-    <div className="min-h-screen bg-gray-950 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="p-5 border-b border-gray-800">
-          <h1 className="text-lg font-bold text-white">Soul Paradise</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Admin Panel</p>
-        </div>
+  // While the drawer is open the page behind it must not scroll, and Escape
+  // should close it — both are expected of anything that behaves like a modal.
+  useEffect(() => {
+    if (!navOpen) return;
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="px-3 py-2 text-xs text-gray-600">Loading…</div>
-          ) : visibleItems.length === 0 ? (
-            // An admin with no grants at all. Say so plainly rather than showing
-            // an empty sidebar that looks like a broken page.
-            <div className="px-3 py-2 text-xs text-gray-500 leading-relaxed">
-              No sections have been assigned to your account yet. Ask a super
-              admin to grant you access.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [navOpen]);
+
+  const sidebar = (
+    <>
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-tertiary-button px-4">
+        <img src="/logo.png" alt="Soul Paradise" className="h-11 w-auto" />
+        <button
+          type="button"
+          onClick={() => setNavOpen(false)}
+          aria-label="Close menu"
+          className="-mr-2 rounded-lg p-2 text-foreground transition-colors hover:bg-background lg:hidden"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        {isLoading ? (
+          <div className="px-3 py-2 text-xs text-gray-500">Loading…</div>
+        ) : visibleItems.length === 0 ? (
+          // An admin with no grants at all. Say so plainly rather than showing
+          // an empty sidebar that looks like a broken page.
+          <div className="px-3 py-2 text-xs leading-relaxed text-gray-500">
+            No sections have been assigned to your account yet. Ask a super admin
+            to grant you access.
+          </div>
+        ) : (
+          visibleItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={() => setNavOpen(false)}
+              className={linkClasses}
+            >
+              <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {item.icon}
+              </svg>
+              {item.label}
+            </NavLink>
+          ))
+        )}
+      </nav>
+
+      {/* Account card */}
+      <div className="shrink-0 border-t border-tertiary-button p-3">
+        <div className="rounded-xl border border-tertiary-button bg-background p-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-button text-[11px] font-bold tracking-wide text-peace ring-2 ring-peace">
+              {initials(user?.name)}
             </div>
-          ) : (
-            visibleItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={linkClasses}
-              >
-                <svg
-                  className="w-5 h-5 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {item.icon}
-                </svg>
-                {item.label}
-              </NavLink>
-            ))
-          )}
-        </nav>
-
-        {/* User info at bottom */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium shrink-0">
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
-                {user?.name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm leading-tight font-bold text-foreground">{user?.name}</p>
+              <p className="truncate text-xs leading-tight text-gray-500">{user?.email}</p>
             </div>
           </div>
 
-          {isSuperAdmin && (
-            <div className="mb-3">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                Super Admin
-              </span>
-            </div>
-          )}
+          <div className="my-2.5 h-px bg-tertiary-button" />
 
-          <button
-            onClick={logout}
-            className="w-full px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-left"
-          >
-            Sign Out
-          </button>
+          {/* Role and sign-out share a row: the badge is a label, not an action,
+              so it reads better beside the button than stacked above it. */}
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`inline-flex h-7 min-w-0 items-center truncate rounded-full border px-2.5 text-[11px] leading-none font-bold ${
+                isSuperAdmin
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-tertiary-button bg-peace text-gray-600'
+              }`}
+            >
+              {isSuperAdmin ? 'Super Admin' : 'Admin'}
+            </span>
+
+            <button
+              onClick={logout}
+              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-tertiary-button bg-peace px-2.5 text-xs font-bold text-gray-600 shadow-sm transition-colors duration-200 hover:border-red-200 hover:bg-red-50 hover:text-danger"
+            >
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+                />
+              </svg>
+              Sign out
+            </button>
+          </div>
         </div>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-dvh bg-background lg:flex">
+      {/* Mobile top bar — the only way to reach the nav below lg. */}
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-tertiary-button bg-peace px-4 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={navOpen}
+          className="-ml-2 rounded-lg p-2 text-foreground transition-colors duration-200 hover:bg-background"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+          </svg>
+        </button>
+        <img src="/logo.png" alt="Soul Paradise" className="h-10 w-auto" />
+        <span className="truncate text-sm font-bold text-foreground">{currentLabel}</span>
+      </header>
+
+      {/* Backdrop for the mobile drawer */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+          onClick={() => setNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/*
+       * One sidebar for both breakpoints: a fixed off-canvas drawer that slides
+       * in below lg, and a static column at lg and up. Rendering it twice would
+       * mean two copies of the nav state to keep in step.
+       */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-tertiary-button bg-peace transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-64 lg:max-w-none lg:translate-x-0 lg:transition-none ${
+          navOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebar}
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 lg:h-dvh lg:overflow-y-auto">
         <Outlet />
       </main>
     </div>

@@ -1,15 +1,12 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import PageLoader from './PageLoader';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {

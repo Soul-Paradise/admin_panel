@@ -23,12 +23,12 @@ const COLOR_PREVIEW: Record<ColorTheme, string> = {
 };
 
 const categoryBadgeColors: Record<OfferCategory, string> = {
-  ALL_OFFERS: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-  BANK_OFFERS: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-  FLIGHTS: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  HOTELS: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  HOLIDAYS: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  VISA: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  ALL_OFFERS: 'bg-gray-100 text-gray-600 border-gray-300',
+  BANK_OFFERS: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  FLIGHTS: 'bg-blue-50 text-links border-blue-200',
+  HOTELS: 'bg-amber-50 text-amber-700 border-amber-200',
+  HOLIDAYS: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  VISA: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 const EMPTY_FORM = {
@@ -154,16 +154,16 @@ export default function Offers() {
   }
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-white">Offers</h1>
+          <h1 className="text-xl font-semibold text-foreground">Offers</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage homepage offer banners</p>
         </div>
         <button
           onClick={openCreate}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors"
         >
           + New Offer
         </button>
@@ -174,8 +174,8 @@ export default function Offers() {
         <div
           className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
             message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}
         >
           {message.text}
@@ -184,43 +184,43 @@ export default function Offers() {
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">
+        <div className="mb-6 bg-peace border border-tertiary-button rounded-xl shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4">
             {editingId ? 'Edit Offer' : 'New Offer'}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Title */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 placeholder="e.g. Flat ₹1500 off on Flights"
               />
             </div>
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-400 mb-1">Description</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
                 placeholder="e.g. Use code SOUL1500 on your next international booking"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Category</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
               <select
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as OfferCategory }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
@@ -230,7 +230,7 @@ export default function Offers() {
 
             {/* Color Theme */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Color Theme</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Color Theme</label>
               <div className="flex gap-2 flex-wrap">
                 {COLOR_THEMES.map((theme) => (
                   <button
@@ -238,7 +238,7 @@ export default function Offers() {
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, colorTheme: theme }))}
                     className={`w-8 h-8 rounded-full ${COLOR_PREVIEW[theme]} transition-all ${
-                      form.colorTheme === theme ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110' : ''
+                      form.colorTheme === theme ? 'ring-2 ring-foreground ring-offset-2 ring-offset-peace scale-110' : ''
                     }`}
                     title={theme}
                   />
@@ -248,12 +248,12 @@ export default function Offers() {
 
             {/* Sort Order */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Sort Order</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Sort Order</label>
               <input
                 type="number"
                 value={form.sortOrder}
                 onChange={(e) => setForm((f) => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -266,45 +266,45 @@ export default function Offers() {
                   onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-10 h-5 bg-tertiary-button peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
               </label>
-              <span className="text-sm text-gray-300">Active</span>
+              <span className="text-sm text-gray-700">Active</span>
             </div>
 
             {/* Valid From */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Valid From (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Valid From (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validFrom}
                 onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               />
             </div>
 
             {/* Valid Until */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Valid Until (optional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Valid Until (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validUntil}
                 onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-800">
+          <div className="flex gap-3 mt-4 pt-4 border-t border-tertiary-button">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-primary-button hover:bg-secondary-button disabled:opacity-50 text-peace text-sm font-medium rounded-lg transition-colors"
             >
               {saving ? 'Saving...' : editingId ? 'Update Offer' : 'Create Offer'}
             </button>
             <button
               onClick={closeForm}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-background hover:bg-tertiary-button text-gray-700 text-sm font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -316,14 +316,14 @@ export default function Offers() {
       {loading ? (
         <div className="text-gray-500 text-sm">Loading...</div>
       ) : offers.length === 0 ? (
-        <div className="text-center py-16 text-gray-600">
+        <div className="text-center py-16 text-gray-400">
           <p className="text-sm">No offers yet. Create one to show it on the homepage.</p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead className="bg-background">
+              <tr className="border-b border-tertiary-button">
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -333,14 +333,14 @@ export default function Offers() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody className="divide-y divide-tertiary-button">
               {offers.map((offer) => (
-                <tr key={offer.id} className="hover:bg-gray-800/30 transition-colors">
+                <tr key={offer.id} className="hover:bg-background transition-colors">
                   <td className="px-4 py-3">
-                    <div className={`w-7 h-7 rounded-full ${COLOR_PREVIEW[offer.colorTheme as ColorTheme] ?? 'bg-gray-600'}`} />
+                    <div className={`w-7 h-7 rounded-full ${COLOR_PREVIEW[offer.colorTheme as ColorTheme] ?? 'bg-gray-300'}`} />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-white">{offer.title}</div>
+                    <div className="font-medium text-foreground">{offer.title}</div>
                     <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{offer.description}</div>
                   </td>
                   <td className="px-4 py-3">
@@ -348,8 +348,8 @@ export default function Offers() {
                       {CATEGORY_LABELS[offer.category]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-400">{offer.sortOrder}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
+                  <td className="px-4 py-3 text-gray-600">{offer.sortOrder}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">
                     {offer.validFrom || offer.validUntil ? (
                       <span>
                         {offer.validFrom ? new Date(offer.validFrom).toLocaleDateString() : '—'}
@@ -357,7 +357,7 @@ export default function Offers() {
                         {offer.validUntil ? new Date(offer.validUntil).toLocaleDateString() : '∞'}
                       </span>
                     ) : (
-                      <span className="text-gray-600">Always</span>
+                      <span className="text-gray-400">Always</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -365,8 +365,8 @@ export default function Offers() {
                       onClick={() => handleToggleActive(offer)}
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-pointer transition-colors ${
                         offer.isActive
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
-                          : 'bg-gray-500/15 text-gray-400 border-gray-500/30 hover:bg-gray-500/25'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
                       }`}
                     >
                       {offer.isActive ? 'Active' : 'Inactive'}
@@ -376,13 +376,13 @@ export default function Offers() {
                     <div className="flex items-center gap-2 justify-end">
                       <button
                         onClick={() => openEdit(offer)}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button rounded-lg transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(offer.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                       >
                         Delete
                       </button>

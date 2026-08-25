@@ -30,10 +30,10 @@ const SUBTYPE_OPTIONS: Record<ServiceType, { value: string | null; label: string
 };
 
 const serviceBadgeColors: Record<ServiceType, string> = {
-  FLIGHT: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  HOTEL: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  TRAVEL_PLAN: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  INSURANCE: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  FLIGHT: 'bg-blue-50 text-links border-blue-200',
+  HOTEL: 'bg-amber-50 text-amber-700 border-amber-200',
+  TRAVEL_PLAN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  INSURANCE: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 // Rendered in this order under every service. B2C is the retail consumer; B2B
@@ -177,10 +177,10 @@ export default function Commissions() {
   const servicesWithRates = SERVICE_TYPES.filter((svc) => grouped[svc]?.length);
 
   return (
-    <div className="p-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Commission Rates</h1>
+          <h1 className="text-2xl font-bold text-foreground">Commission Rates</h1>
           <p className="text-sm text-gray-500 mt-1">
             Set markup rates for each service. Commission is added to the base price shown to customers.
           </p>
@@ -188,7 +188,7 @@ export default function Commissions() {
         {!showForm && (
           <button
             onClick={() => { setFormAudience(activeTab); setShowForm(true); setMessage(null); }}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2.5 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors"
           >
             + Add Rate
           </button>
@@ -196,15 +196,15 @@ export default function Commissions() {
       </div>
 
       {/* Audience tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-800">
+      <div className="flex gap-1 mb-6 border-b border-tertiary-button">
         {AUDIENCE_ORDER.map((aud) => (
           <button
             key={aud}
             onClick={() => setActiveTab(aud)}
             className={`px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
               activeTab === aud
-                ? 'border-blue-500 text-white'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
+                ? 'border-primary-button text-foreground'
+                : 'border-transparent text-gray-500 hover:text-foreground'
             }`}
           >
             {AUDIENCE_LABELS[aud]}
@@ -217,8 +217,8 @@ export default function Commissions() {
         <div
           className={`mb-4 p-3 rounded-lg text-sm flex justify-between items-center ${
             message.type === 'success'
-              ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-              : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-red-50 border border-red-200 text-red-700'
           }`}
         >
           <span>{message.text}</span>
@@ -228,15 +228,15 @@ export default function Commissions() {
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+        <div className="mb-6 bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             {editingId ? 'Edit Commission Rate' : 'New Commission Rate'}
           </h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               {/* Service Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Service Type</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Service Type</label>
                 <select
                   value={formServiceType}
                   onChange={(e) => {
@@ -245,7 +245,7 @@ export default function Commissions() {
                     setFormSubType(SUBTYPE_OPTIONS[svc][0].value);
                   }}
                   disabled={!!editingId}
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2.5 bg-peace border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {SERVICE_TYPES.map((svc) => (
                     <option key={svc} value={svc}>{SERVICE_LABELS[svc]}</option>
@@ -255,12 +255,12 @@ export default function Commissions() {
 
               {/* Audience */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Applies To</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Applies To</label>
                 <select
                   value={formAudience}
                   onChange={(e) => setFormAudience(e.target.value as CommissionAudience)}
                   disabled={!!editingId}
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2.5 bg-peace border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {AUDIENCE_ORDER.map((aud) => (
                     <option key={aud} value={aud}>{AUDIENCE_LABELS[aud]}</option>
@@ -270,12 +270,12 @@ export default function Commissions() {
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Category</label>
                 <select
                   value={formSubType ?? ''}
                   onChange={(e) => setFormSubType(e.target.value || null)}
                   disabled={!!editingId}
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2.5 bg-peace border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {(SUBTYPE_OPTIONS[formServiceType] || []).map((opt) => (
                     <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>
@@ -285,11 +285,11 @@ export default function Commissions() {
 
               {/* Commission Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Commission Type</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Commission Type</label>
                 <select
                   value={formCommissionType}
                   onChange={(e) => setFormCommissionType(e.target.value as CommissionType)}
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-peace border border-gray-300 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="PERCENTAGE">Percentage (%)</option>
                   <option value="FIXED">Fixed Amount (₹)</option>
@@ -298,7 +298,7 @@ export default function Commissions() {
 
               {/* Value */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
                   {formCommissionType === 'PERCENTAGE' ? 'Percentage Value' : 'Amount in ₹'}
                 </label>
                 <div className="relative">
@@ -313,19 +313,19 @@ export default function Commissions() {
                     onChange={(e) => setFormValue(e.target.value)}
                     placeholder={formCommissionType === 'PERCENTAGE' ? 'e.g. 5' : 'e.g. 200'}
                     required
-                    className="w-full pl-8 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-4 py-2.5 bg-peace border border-gray-300 rounded-lg text-foreground placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
             </div>
 
             {/* Active toggle */}
-            <label className="flex items-center gap-2 text-sm text-gray-400 mb-5 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-gray-600 mb-5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-800"
+                className="w-4 h-4 rounded border-gray-300 bg-tertiary-button"
               />
               Active (commission will be applied to prices)
             </label>
@@ -335,14 +335,14 @@ export default function Commissions() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 text-sm font-medium rounded-lg transition-colors"
+                className="px-5 py-2.5 bg-background hover:bg-tertiary-button text-gray-600 text-sm font-medium rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -358,11 +358,11 @@ export default function Commissions() {
 
       {/* Empty state for the active tab */}
       {!loading && servicesWithRates.length === 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl py-16 text-center">
+        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm py-16 text-center">
           <p className="text-gray-500">
             No {AUDIENCE_LABELS[activeTab]} commission rates configured yet.
           </p>
-          <p className="text-gray-600 text-sm mt-1">Click "+ Add Rate" to get started.</p>
+          <p className="text-gray-400 text-sm mt-1">Click "+ Add Rate" to get started.</p>
         </div>
       )}
 
@@ -382,11 +382,11 @@ export default function Commissions() {
                 </span>
               </div>
 
-              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+              <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-800">
+                  <table className="w-full min-w-[680px]">
+                    <thead className="bg-background">
+                      <tr className="border-b border-tertiary-button">
                         <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
                           Category
                         </th>
@@ -404,23 +404,23 @@ export default function Commissions() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-tertiary-button">
                       {items.map((c) => (
-                        <tr key={c.id} className="hover:bg-gray-800/50 transition-colors">
+                        <tr key={c.id} className="hover:bg-background transition-colors">
                           <td className="px-5 py-4">
-                            <span className="text-sm font-medium text-white">
+                            <span className="text-sm font-medium text-foreground">
                               {c.subType
                                 ? c.subType.charAt(0).toUpperCase() + c.subType.slice(1)
                                 : 'All'}
                             </span>
                           </td>
                           <td className="px-5 py-4">
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-gray-600">
                               {c.commissionType === 'PERCENTAGE' ? 'Percentage' : 'Fixed Amount'}
                             </span>
                           </td>
                           <td className="px-5 py-4">
-                            <span className="text-sm font-semibold text-white">
+                            <span className="text-sm font-semibold text-foreground">
                               {c.commissionType === 'PERCENTAGE'
                                 ? `${c.value}%`
                                 : `₹${c.value}`}
@@ -431,13 +431,13 @@ export default function Commissions() {
                               onClick={() => handleToggleActive(c)}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
                                 c.isActive
-                                  ? 'bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/25'
-                                  : 'bg-gray-500/15 text-gray-500 border-gray-500/30 hover:bg-gray-500/25'
+                                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                  : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
                               }`}
                             >
                               <span
                                 className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                  c.isActive ? 'bg-green-400' : 'bg-gray-500'
+                                  c.isActive ? 'bg-success' : 'bg-gray-400'
                                 }`}
                               />
                               {c.isActive ? 'Active' : 'Inactive'}
@@ -446,13 +446,13 @@ export default function Commissions() {
                           <td className="px-5 py-4 text-right">
                             <button
                               onClick={() => handleEdit(c)}
-                              className="text-sm text-blue-400 hover:text-blue-300 mr-3 transition-colors"
+                              className="text-sm text-links hover:text-blue-800 mr-3 transition-colors"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDelete(c)}
-                              className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                              className="text-sm text-red-700 hover:text-red-800 transition-colors"
                             >
                               Delete
                             </button>

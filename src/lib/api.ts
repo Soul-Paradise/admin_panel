@@ -431,6 +431,24 @@ export interface PaginatedAuditLogs {
   pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
+/**
+ * Nest reports validation failures as `message: string[]`. Passing that array
+ * straight to Error() stringifies it into one comma-joined wall of text, so the
+ * user sees ten copies of the same complaint instead of a readable reason.
+ */
+function readErrorMessage(data: unknown, status: number): string {
+  const message = (data as { message?: unknown } | null)?.message;
+
+  if (Array.isArray(message) && message.length) {
+    const [first, ...rest] = message.map(String);
+    return rest.length ? `${first} (and ${rest.length} more)` : first;
+  }
+
+  if (typeof message === 'string' && message.trim()) return message;
+
+  return `Request failed (${status})`;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -449,10 +467,19 @@ class ApiClient {
     };
 
     const response = await fetch(url, config);
-    const data = await response.json();
+
+    // Not every failure carries a JSON body — a gateway 502 or an empty 204
+    // would otherwise surface as an unrelated JSON parse error.
+    const raw = await response.text();
+    let data: unknown = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      data = null;
+    }
 
     if (!response.ok) {
-      throw new ApiError(data.message || 'An error occurred', response.status);
+      throw new ApiError(readErrorMessage(data, response.status), response.status);
     }
 
     return data as T;

@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = await api.getCurrentUser();
 
       // Only admins may enter the panel. SUPER_ADMIN is a superset of ADMIN, so
-      // it must be accepted here too — an exact === 'ADMIN' test would lock out
+      // it must be accepted here too - an exact === 'ADMIN' test would lock out
       // the one role that can hand out page access.
       if (!ADMIN_ROLES.includes(currentUser.role)) {
         api.clearTokens();
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const response = await api.login(email, password);
 
-      // Enforce admin-only access (SUPER_ADMIN included — see checkAuth above)
+      // Enforce admin-only access (SUPER_ADMIN included - see checkAuth above)
       if (!ADMIN_ROLES.includes(response.user.role)) {
         api.clearTokens();
         setError('Access denied. Admin privileges required.');

@@ -83,7 +83,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stat cards — 2 across on phones so the numbers stay readable, 4 on desktop. */}
+      {/* Stat cards - 2 across on phones so the numbers stay readable, 4 on desktop. */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (

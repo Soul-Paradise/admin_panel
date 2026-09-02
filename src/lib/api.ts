@@ -1,11 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
 // 'USER' is what the backend Role enum actually calls a customer. This used to
-// say 'CUSTOMER', which matched nothing — the Dashboard's customer count silently
+// say 'CUSTOMER', which matched nothing - the Dashboard's customer count silently
 // returned 0 and the Users role filter never matched.
 export type UserRole = 'USER' | 'AGENT' | 'ADMIN' | 'SUPER_ADMIN';
 
-/** Sidebar sections. Mirrors the backend AdminPage enum — keep in sync. */
+/** Sidebar sections. Mirrors the backend AdminPage enum - keep in sync. */
 export type AdminPage =
   | 'DASHBOARD'
   | 'USERS'
@@ -20,7 +20,7 @@ export type AdminPage =
 
 export type AccessLevel = 'READ' | 'WRITE';
 
-/** A page missing from the map means no access at all — absence is denial. */
+/** A page missing from the map means no access at all - absence is denial. */
 export type PageAccessMap = Partial<Record<AdminPage, AccessLevel>>;
 
 export interface MyAccess {
@@ -133,7 +133,7 @@ export interface AgentVerificationEvent {
 
 /**
  * Identity numbers arrive MASKED. The full value requires an explicit, audited
- * call to revealAgentNumber() — the backend never sends it with the application.
+ * call to revealAgentNumber() - the backend never sends it with the application.
  */
 export interface AgentApplication {
   id: string;
@@ -343,7 +343,7 @@ export interface CreatePromoCodeInput {
   serviceType: ServiceType | null;
 }
 
-/** `code` is intentionally not updatable — see the backend DTO for why. */
+/** `code` is intentionally not updatable - see the backend DTO for why. */
 export type UpdatePromoCodeInput = Partial<Omit<CreatePromoCodeInput, 'code'>>;
 
 // --------------------------------------------------------------------- Reviews
@@ -468,7 +468,7 @@ class ApiClient {
 
     const response = await fetch(url, config);
 
-    // Not every failure carries a JSON body — a gateway 502 or an empty 204
+    // Not every failure carries a JSON body - a gateway 502 or an empty 204
     // would otherwise surface as an unrelated JSON parse error.
     const raw = await response.text();
     let data: unknown = null;
@@ -638,7 +638,7 @@ class ApiClient {
    * How to view a document.
    *
    * mode 'signed' (GCS): `url` is a signed URL, good for ~5 minutes. Don't cache it.
-   * mode 'proxy'  (local dev): `url` is null — a local file has no browser-reachable
+   * mode 'proxy'  (local dev): `url` is null - a local file has no browser-reachable
    *   URL, so the bytes must be fetched via getAgentDocumentBlob() instead.
    */
   async getAgentDocumentUrl(
@@ -660,7 +660,7 @@ class ApiClient {
    *
    * Deliberately not authenticatedRequest(): that parses JSON, and this returns
    * an image. The endpoint needs an Authorization header, which is exactly why
-   * window.open() cannot be pointed at it directly — the browser would send no
+   * window.open() cannot be pointed at it directly - the browser would send no
    * token and get a 401.
    */
   async getAgentDocumentBlob(id: string, documentId: string): Promise<Blob> {
@@ -682,7 +682,7 @@ class ApiClient {
     return response.blob();
   }
 
-  /** Audited on the backend — every reveal is recorded against the admin. */
+  /** Audited on the backend - every reveal is recorded against the admin. */
   async revealAgentNumber(
     id: string,
     field: 'pan' | 'aadhaar',
@@ -725,7 +725,7 @@ class ApiClient {
   }
 
   /**
-   * Replaces the target's grants wholesale — pages omitted from `access` are
+   * Replaces the target's grants wholesale - pages omitted from `access` are
    * revoked. Send the full desired state, not a delta.
    */
   async setAdminAccess(
@@ -767,7 +767,7 @@ class ApiClient {
     });
   }
 
-  /** Rejected by the backend if the coupon has ever been redeemed — deactivate instead. */
+  /** Rejected by the backend if the coupon has ever been redeemed - deactivate instead. */
   async deletePromoCode(id: string): Promise<{ deleted: boolean }> {
     return this.authenticatedRequest(`/admin/promo-codes/${id}`, {
       method: 'DELETE',

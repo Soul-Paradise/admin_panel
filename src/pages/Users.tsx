@@ -6,7 +6,7 @@ import { useAccess } from '../hooks/useAccess';
 const ROLES: UserRole[] = ['USER', 'AGENT', 'ADMIN'];
 
 // AGENT is filterable but NOT directly assignable. The role only works alongside
-// an approved AgentProfile — granting it here would leave the user with no
+// an approved AgentProfile - granting it here would leave the user with no
 // profile, and the login gate fails closed on exactly that, locking them out.
 // Agents are promoted by approving their application on the Agents page.
 const ASSIGNABLE_ROLES: UserRole[] = ['USER', 'ADMIN'];
@@ -173,7 +173,7 @@ export default function Users() {
                       </span>
                     </td>
                     {/* The row navigates on click, so the control inside it must not
-                        bubble — changing a role should never also change the page. */}
+                        bubble - changing a role should never also change the page. */}
                     <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                       {user.role === 'AGENT' ? (
                         // Rendering a <select> here would be actively dangerous: its
@@ -187,9 +187,9 @@ export default function Users() {
                         // super admin is the only account that can grant page access,
                         // so a mis-click that demoted one could leave nobody able to
                         // administer the panel. The role is not assignable from here
-                        // at all — the backend refuses it too.
+                        // at all - the backend refuses it too.
                         <span className="text-xs text-gray-500">
-                          Super admin — not editable
+                          Super admin - not editable
                         </span>
                       ) : (
                         <select

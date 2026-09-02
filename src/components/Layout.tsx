@@ -31,7 +31,7 @@ interface NavItem {
 
 /**
  * The ten sections, in the order the sidebar shows them. `page` ties each entry
- * to the backend AdminPage grant that governs it — an admin without a grant
+ * to the backend AdminPage grant that governs it - an admin without a grant
  * never sees the link, and the API would refuse them anyway.
  */
 const NAV_ITEMS: NavItem[] = [
@@ -72,7 +72,7 @@ export default function Layout() {
     'Admin Panel';
 
   // While the drawer is open the page behind it must not scroll, and Escape
-  // should close it — both are expected of anything that behaves like a modal.
+  // should close it - both are expected of anything that behaves like a modal.
   useEffect(() => {
     if (!navOpen) return;
 
@@ -179,7 +179,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-dvh bg-background lg:flex">
-      {/* Mobile top bar — the only way to reach the nav below lg. */}
+      {/* Mobile top bar - the only way to reach the nav below lg. */}
       <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-tertiary-button bg-peace px-4 lg:hidden">
         <button
           type="button"

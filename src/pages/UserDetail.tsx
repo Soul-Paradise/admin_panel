@@ -64,7 +64,7 @@ function money(amount: number | null | undefined): string {
 }
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return '-';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -118,15 +118,15 @@ function BookingCard({ booking }: { booking: UserBooking }) {
             <div className="col-span-2 md:col-span-1">
               <p className="text-[11px] uppercase tracking-wider text-gray-400">Route</p>
               <p className="text-sm font-medium text-foreground mt-0.5">
-                {booking.fromCode ?? '—'} → {booking.toCode ?? '—'}
+                {booking.fromCode ?? '-'} → {booking.toCode ?? '-'}
               </p>
             </div>
-            <Field label="Airline" value={booking.airline ?? '—'} />
+            <Field label="Airline" value={booking.airline ?? '-'} />
             <Field label="Departure" value={formatDate(booking.departureDate)} />
-            <Field label="PNR" value={booking.pnr ?? '—'} mono />
+            <Field label="PNR" value={booking.pnr ?? '-'} mono />
             <Field
               label="Passengers"
-              value={booking.passengerCount != null ? String(booking.passengerCount) : '—'}
+              value={booking.passengerCount != null ? String(booking.passengerCount) : '-'}
             />
           </>
         )}
@@ -135,17 +135,17 @@ function BookingCard({ booking }: { booking: UserBooking }) {
           <>
             <div className="col-span-2 md:col-span-1">
               <p className="text-[11px] uppercase tracking-wider text-gray-400">Hotel</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{booking.hotelName ?? '—'}</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">{booking.hotelName ?? '-'}</p>
             </div>
-            <Field label="City" value={booking.city ?? '—'} />
+            <Field label="City" value={booking.city ?? '-'} />
             <div className="col-span-2 md:col-span-1">
               <p className="text-[11px] uppercase tracking-wider text-gray-400">Stay</p>
               <p className="text-sm text-gray-700 mt-0.5">
                 {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}
               </p>
             </div>
-            <Field label="Nights" value={booking.nights != null ? String(booking.nights) : '—'} />
-            <Field label="Confirmation" value={booking.confirmationId ?? '—'} mono />
+            <Field label="Nights" value={booking.nights != null ? String(booking.nights) : '-'} />
+            <Field label="Confirmation" value={booking.confirmationId ?? '-'} mono />
           </>
         )}
 
@@ -153,7 +153,7 @@ function BookingCard({ booking }: { booking: UserBooking }) {
           <>
             <div className="col-span-2 md:col-span-1">
               <p className="text-[11px] uppercase tracking-wider text-gray-400">Policy Type</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{booking.policyType ?? '—'}</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">{booking.policyType ?? '-'}</p>
             </div>
             <div className="col-span-2 md:col-span-2">
               <p className="text-[11px] uppercase tracking-wider text-gray-400">Cover Period</p>
@@ -161,10 +161,10 @@ function BookingCard({ booking }: { booking: UserBooking }) {
                 {formatDate(booking.startDate)} → {formatDate(booking.endDate)}
               </p>
             </div>
-            <Field label="Policy No." value={booking.policyNumber ?? '—'} mono />
+            <Field label="Policy No." value={booking.policyNumber ?? '-'} mono />
             <Field
               label="Travellers"
-              value={booking.travellerCount != null ? String(booking.travellerCount) : '—'}
+              value={booking.travellerCount != null ? String(booking.travellerCount) : '-'}
             />
           </>
         )}
@@ -307,7 +307,7 @@ export default function UserDetail() {
             <p className="text-sm text-gray-500 mt-1 truncate">{user.email}</p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
-              <Field label="Provider" value={user.provider?.toLowerCase() ?? '—'} />
+              <Field label="Provider" value={user.provider?.toLowerCase() ?? '-'} />
               <Field label="Joined" value={formatDate(user.createdAt)} />
               <Field
                 label="Last Login"

@@ -6,7 +6,7 @@ import type { AdminPage } from '../lib/api';
 
 /**
  * Refuses a section the admin has no grant for. Hiding the sidebar link alone
- * would still leave the page reachable by typing the URL — and while the API
+ * would still leave the page reachable by typing the URL - and while the API
  * would reject the data calls, the user would land on a broken-looking screen of
  * failed requests instead of a clear explanation.
  *

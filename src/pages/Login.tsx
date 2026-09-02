@@ -23,7 +23,7 @@ export default function Login() {
   return (
     /*
      * The site's login is a two-pane split: form on the left, imagery on the
-     * right from lg up. dvh rather than vh — on mobile 100vh includes the
+     * right from lg up. dvh rather than vh - on mobile 100vh includes the
      * address bar, which pushes the form down out of view.
      */
     <div className="flex min-h-dvh bg-peace">
@@ -127,7 +127,7 @@ export default function Login() {
           </form>
 
           <p className="pt-6 text-center text-xs text-gray-500">
-            Restricted access — administrators only.
+            Restricted access - administrators only.
           </p>
         </div>
       </div>

@@ -522,7 +522,7 @@ export default function Coupons() {
                     <td className="px-4 py-3 text-gray-600 text-xs">
                       {coupon.validFrom || coupon.validUntil ? (
                         <span>
-                          {coupon.validFrom ? new Date(coupon.validFrom).toLocaleDateString() : '—'}
+                          {coupon.validFrom ? new Date(coupon.validFrom).toLocaleDateString() : '-'}
                           {' → '}
                           {coupon.validUntil ? new Date(coupon.validUntil).toLocaleDateString() : '∞'}
                         </span>
@@ -568,7 +568,7 @@ export default function Coupons() {
                                backend refuses the delete. Show why rather than 400-ing. */
                             <button
                               disabled
-                              title="Redeemed coupons can't be deleted — deactivate instead"
+                              title="Redeemed coupons can't be deleted - deactivate instead"
                               className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-background rounded-lg cursor-not-allowed"
                             >
                               Delete

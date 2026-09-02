@@ -143,7 +143,7 @@ export default function Utilities() {
         </div>
       ) : (
         <>
-          {/* Backend caveats — these explain zeros that would otherwise look like real data. */}
+          {/* Backend caveats - these explain zeros that would otherwise look like real data. */}
           {overview.notes.length > 0 && (
             <div className="space-y-2 mb-6">
               {overview.notes.map((note, i) => (
@@ -339,7 +339,7 @@ export default function Utilities() {
                         <div
                           key={d.date}
                           className="flex flex-col items-center justify-end h-full min-w-[2.5rem] flex-1"
-                          title={`${shortDate(d.date)} — Flights: ${d.flights}, Hotels: ${d.hotels}, Insurance: ${d.insurance} (total ${total})`}
+                          title={`${shortDate(d.date)} - Flights: ${d.flights}, Hotels: ${d.hotels}, Insurance: ${d.insurance} (total ${total})`}
                         >
                           <span className="text-[11px] text-gray-500 mb-1">{total || ''}</span>
                           <div className="w-full flex flex-col justify-end flex-1 rounded-t-md overflow-hidden bg-background">

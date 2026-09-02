@@ -119,7 +119,7 @@ export default function AuditLogs() {
         <h1 className="text-xl font-semibold text-foreground">Audit Logs</h1>
         <p className="text-sm text-gray-500 mt-0.5">Every change made from the admin panel</p>
         <p className="text-xs text-gray-400 mt-1">
-          This log is append-only — entries cannot be edited or deleted.
+          This log is append-only - entries cannot be edited or deleted.
         </p>
       </div>
 
@@ -277,7 +277,7 @@ export default function AuditLogs() {
                               {PAGE_LABELS[log.page] ?? log.page}
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-gray-400">-</span>
                           )}
                         </td>
 
@@ -305,17 +305,17 @@ export default function AuditLogs() {
                               </div>
                               <div>
                                 <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">IP Address</div>
-                                <div className="text-xs text-gray-700 font-mono">{log.ipAddress ?? '—'}</div>
+                                <div className="text-xs text-gray-700 font-mono">{log.ipAddress ?? '-'}</div>
                               </div>
                               <div>
                                 <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">User Agent</div>
-                                <div className="text-xs text-gray-700 break-all">{log.userAgent ?? '—'}</div>
+                                <div className="text-xs text-gray-700 break-all">{log.userAgent ?? '-'}</div>
                               </div>
                             </div>
 
                             <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Metadata</div>
                             <pre className="bg-background border border-tertiary-button rounded-lg p-3 text-xs text-gray-700 font-mono overflow-x-auto">
-                              {log.metadata ? JSON.stringify(log.metadata, null, 2) : '—'}
+                              {log.metadata ? JSON.stringify(log.metadata, null, 2) : '-'}
                             </pre>
                           </td>
                         </tr>

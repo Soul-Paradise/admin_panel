@@ -26,7 +26,7 @@ const PAGE_META: Record<AdminPage, { label: string; hint: string; sensitive?: bo
   UTILITIES: { label: 'Utilities', hint: 'Reports and platform tools' },
   USER_ACCESS: {
     label: 'User Access',
-    hint: 'Admin permissions — this page',
+    hint: 'Admin permissions - this page',
     sensitive: true,
   },
   AUDIT_LOGS: { label: 'Audit Logs', hint: 'Record of every admin action' },
@@ -374,7 +374,7 @@ export default function UserAccess() {
                       </p>
                     ) : (
                       <>
-                        {/* Bulk actions — granting all ten one control at a time was 20 clicks. */}
+                        {/* Bulk actions - granting all ten one control at a time was 20 clicks. */}
                         <div className="flex flex-wrap items-center gap-2 border-b border-tertiary-button bg-background px-4 py-2.5">
                           <span className="mr-1 text-xs font-semibold text-gray-500">Set all:</span>
                           {LEVELS.map((lvl) => (

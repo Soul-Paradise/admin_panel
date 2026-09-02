@@ -19,7 +19,7 @@ export const AccessContext = createContext<AccessContextValue | undefined>(
 
 /**
  * Mirrors the backend's per-page grants so the UI can hide what the API would
- * refuse anyway. This is presentation only — PageAccessGuard is the real
+ * refuse anyway. This is presentation only - PageAccessGuard is the real
  * enforcement, and it does not trust anything decided here.
  */
 export function AccessProvider({ children }: { children: React.ReactNode }) {

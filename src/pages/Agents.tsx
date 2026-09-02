@@ -105,7 +105,7 @@ export default function Agents() {
     action: 'revoke' | 'restore',
   ) => {
     if (action === 'revoke') {
-      // Reason is optional — it's an audit-trail note, and if entered it's
+      // Reason is optional - it's an audit-trail note, and if entered it's
       // emailed to the partner. Cancelling the prompt aborts the revoke.
       const reason = prompt(
         `Revoke access for ${application.agencyName}?\n\nThey will be signed out and unable to log in until you restore access.\n\nOptional reason (emailed to the partner):`,
@@ -355,7 +355,7 @@ function ApplicationDetail({
             hint={application.user.emailVerified ? undefined : 'Email not verified'}
           />
           <Field label="Phone" value={application.contactPhone} />
-          <Field label="GSTIN" value={application.gstNumber || '—'} />
+          <Field label="GSTIN" value={application.gstNumber || '-'} />
           <Field
             label="Address"
             value={[
@@ -453,7 +453,7 @@ function ApplicationDetail({
       ) : (
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <p className="text-sm text-gray-500">
-            This partner's access is revoked — they cannot sign in.
+            This partner's access is revoked - they cannot sign in.
           </p>
           <button
             onClick={() => onAccessChange(application, 'restore')}
@@ -486,7 +486,7 @@ function DocumentCard({
 
       if (info.mode === 'signed' && info.url) {
         // GCS: the browser fetches straight from Google. Opened immediately and
-        // never persisted — the URL expires in ~5 minutes and is a bearer
+        // never persisted - the URL expires in ~5 minutes and is a bearer
         // credential for a raw identity document.
         window.open(info.url, '_blank', 'noopener,noreferrer');
         return;
@@ -500,7 +500,7 @@ function DocumentCard({
 
       window.open(objectUrl, '_blank', 'noopener,noreferrer');
 
-      // The new tab has already loaded it by now. Revoking frees the buffer —
+      // The new tab has already loaded it by now. Revoking frees the buffer -
       // these are multi-megabyte scans and would otherwise be pinned in memory
       // for the life of the page.
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);

@@ -352,7 +352,7 @@ export default function Offers() {
                   <td className="px-4 py-3 text-gray-600 text-xs">
                     {offer.validFrom || offer.validUntil ? (
                       <span>
-                        {offer.validFrom ? new Date(offer.validFrom).toLocaleDateString() : '—'}
+                        {offer.validFrom ? new Date(offer.validFrom).toLocaleDateString() : '-'}
                         {' → '}
                         {offer.validUntil ? new Date(offer.validUntil).toLocaleDateString() : '∞'}
                       </span>

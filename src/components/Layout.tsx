@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   BadgePercent,
   ChevronRight,
+  CreditCard,
   Handshake,
   LayoutDashboard,
   LogOut,
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/offers', label: 'Offers', page: 'OFFERS', icon: Tag },
   { to: '/reviews', label: 'Reviews', page: 'REVIEWS', icon: Star },
   { to: '/utilities', label: 'Utilities', page: 'UTILITIES', icon: Wrench },
+  { to: '/custom-payments', label: 'Custom Payments', page: 'CUSTOM_PAYMENTS', icon: CreditCard },
   { to: '/user-access', label: 'User Access', page: 'USER_ACCESS', icon: ShieldCheck },
   { to: '/audit-logs', label: 'Audit Logs', page: 'AUDIT_LOGS', icon: ScrollText },
 ];

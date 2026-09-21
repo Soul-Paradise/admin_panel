@@ -16,7 +16,8 @@ export type AdminPage =
   | 'REVIEWS'
   | 'UTILITIES'
   | 'USER_ACCESS'
-  | 'AUDIT_LOGS';
+  | 'AUDIT_LOGS'
+  | 'CUSTOM_PAYMENTS';
 
 export type AccessLevel = 'READ' | 'WRITE';
 
@@ -426,6 +427,45 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export type PaymentStatus =
+  | 'INITIATED'
+  | 'REDIRECTED'
+  | 'PAID'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUND_PENDING'
+  | 'REFUNDED'
+  | 'EXPIRED';
+
+/** Dashboard buckets - mirrors STATUS_GROUPS in the backend. */
+export type PaymentStatusGroup = 'received' | 'pending' | 'failed';
+
+export interface AdminCustomPayment {
+  id: string;
+  merchantTxnNo: string;
+  /** Bank's transaction id, once the bank has processed it. */
+  txnId: string | null;
+  /** Decimal as a string, e.g. "5000.00". */
+  amount: string;
+  status: PaymentStatus;
+  customerName: string | null;
+  customerEmail: string | null;
+  paymentMode: string | null;
+  respDescription: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  failedAt: string | null;
+  cancelledAt: string | null;
+}
+
+export interface AdminCustomPaymentsResponse {
+  items: AdminCustomPayment[];
+  summary: Record<PaymentStatusGroup, { count: number; amount: string }> & {
+    all: { count: number };
+  };
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
 export interface PaginatedAuditLogs {
   items: AuditLogEntry[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -816,6 +856,29 @@ class ApiClient {
   ): Promise<AnalyticsOverview> {
     return this.authenticatedRequest<AnalyticsOverview>(
       `/admin/analytics/overview?range=${range}`,
+    );
+  }
+
+  // ---------------------------------------------------------- Custom payments
+
+  async getCustomPayments(params: {
+    status?: PaymentStatusGroup;
+    search?: string;
+    from?: string;
+    to?: string;
+    pageNum?: number;
+    limit?: number;
+  } = {}): Promise<AdminCustomPaymentsResponse> {
+    const query = new URLSearchParams();
+    if (params.status) query.set('status', params.status);
+    if (params.search) query.set('search', params.search);
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
+    query.set('pageNum', String(params.pageNum ?? 1));
+    query.set('limit', String(params.limit ?? 25));
+
+    return this.authenticatedRequest<AdminCustomPaymentsResponse>(
+      `/admin/custom-payments?${query.toString()}`,
     );
   }
 

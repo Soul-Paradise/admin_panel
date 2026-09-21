@@ -18,6 +18,7 @@ import Reviews from './pages/Reviews';
 import Utilities from './pages/Utilities';
 import UserAccess from './pages/UserAccess';
 import AuditLogs from './pages/AuditLogs';
+import CustomPayments from './pages/CustomPayments';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -119,6 +120,14 @@ export default function App() {
                 element={
                   <SectionRoute page="UTILITIES">
                     <Utilities />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="custom-payments"
+                element={
+                  <SectionRoute page="CUSTOM_PAYMENTS">
+                    <CustomPayments />
                   </SectionRoute>
                 }
               />

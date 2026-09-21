@@ -16,9 +16,29 @@ export type AdminPage =
   | 'REVIEWS'
   | 'UTILITIES'
   | 'USER_ACCESS'
-  | 'AUDIT_LOGS';
+  | 'AUDIT_LOGS'
+  | 'CUSTOM_PAYMENTS';
 
 export type AccessLevel = 'READ' | 'WRITE';
+
+export type PaymentStatus =
+  | 'INITIATED'
+  | 'REDIRECTED'
+  | 'PAID'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUND_PENDING'
+  | 'REFUNDED'
+  | 'EXPIRED';
+
+export interface CustomPayment {
+  merchantTxnNo: string;
+  /** Decimal as a string, e.g. "5000.00". */
+  amount: string;
+  status: PaymentStatus;
+  createdAt: string;
+  paidAt: string | null;
+}
 
 /** A page missing from the map means no access at all - absence is denial. */
 export type PageAccessMap = Partial<Record<AdminPage, AccessLevel>>;
@@ -816,6 +836,28 @@ class ApiClient {
   ): Promise<AnalyticsOverview> {
     return this.authenticatedRequest<AnalyticsOverview>(
       `/admin/analytics/overview?range=${range}`,
+    );
+  }
+
+  // ---------------------------------------------------------- Custom payments
+
+  /** Starts an ICICI PG payment; send the browser to `redirectUrl`. */
+  async createCustomPayment(
+    amount: number,
+  ): Promise<{ merchantTxnNo: string; redirectUrl: string }> {
+    return this.authenticatedRequest('/admin/custom-payments', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  async getCustomPayments(): Promise<CustomPayment[]> {
+    return this.authenticatedRequest<CustomPayment[]>('/admin/custom-payments');
+  }
+
+  async getCustomPayment(merchantTxnNo: string): Promise<CustomPayment> {
+    return this.authenticatedRequest<CustomPayment>(
+      `/admin/custom-payments/${encodeURIComponent(merchantTxnNo)}`,
     );
   }
 

@@ -1,1 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
 @import "tailwindcss";
+
+/*
+ * The customer-facing site's palette, copied verbatim from
+ * soul_paradise_frontend/app/globals.css. The admin panel is the same brand, so
+ * these names and values must stay in step with that file - if a colour changes
+ * there, change it here too.
+ */
+@theme inline {
+  --color-background: #F9FAFC;
+  --color-foreground: #313647;
+  --color-primary-button: #313647;
+  --color-secondary-button: #435663;
+  --color-tertiary-button: #dce3e8;
+  --color-danger: #D34E4E;
+  --color-success: #84994F;
+  --color-warn: #CE7E5A;
+  --color-peace: #FFFFFF;
+  --color-death: #000000;
+  --color-active: #313647;
+  --color-inactive: #41474a;
+  --color-links: #1F7AC4;
+  --font-nunito: 'Nunito', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-nunito antialiased;
+    /* Stops the pull-to-refresh rubber-band on mobile showing a grey void. */
+    overscroll-behavior-y: none;
+  }
+
+  /*
+   * iOS Safari zooms the viewport whenever a focused field is under 16px, which
+   * leaves the user zoomed-in mid-form with no way back. Force 16px on phones
+   * and let the desktop breakpoint shrink it back for density.
+   */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: inherit;
+    }
+  }
+
+  /* Light, slim scrollbars to match the site rather than the OS default. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #c7d0d8 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #c7d0d8;
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

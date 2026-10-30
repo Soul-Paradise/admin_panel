@@ -27,6 +27,7 @@ import SiteContent from './pages/SiteContent';
 import SitePageEditor from './pages/SitePageEditor';
 import MediaLibrary from './pages/MediaLibrary';
 import Destinations from './pages/Destinations';
+import CustomerMessages from './pages/CustomerMessages';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -89,6 +90,14 @@ export default function App() {
                 element={
                   <SectionRoute page="BOOKING_PARTNERS">
                     <Agents />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="messages"
+                element={
+                  <SectionRoute page="CUSTOMER_MESSAGES">
+                    <CustomerMessages />
                   </SectionRoute>
                 }
               />

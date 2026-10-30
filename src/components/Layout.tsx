@@ -7,6 +7,7 @@ import {
   FileText,
   Handshake,
   Images,
+  Inbox,
   MapPinned,
   LayoutDashboard,
   LayoutTemplate,
@@ -56,6 +57,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/users', label: 'User Details', page: 'USERS', icon: Users },
       { to: '/partners', label: 'Booking Partners', page: 'BOOKING_PARTNERS', icon: Handshake },
+      { to: '/messages', label: 'Customer Messages', page: 'CUSTOMER_MESSAGES', icon: Inbox },
     ],
   },
   {

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Building2, ChevronLeft, Clock, Handshake, Plane, ReceiptText, ShieldCheck, Ticket, Wallet } from 'lucide-react';
 import {
   api,
   type UserDetail as UserDetailData,
@@ -8,54 +9,54 @@ import {
   type UserRole,
   type AgentStatus,
 } from '../lib/api';
+import { Alert, Badge, EmptyState, HeroStat, IconTile, PageHeader, Panel, Spinner, StatTile, Tabs } from '../components/ui';
+import { CARD, LABEL, PAGE, type Accent, type Tone } from '../lib/ui-styles';
 
-const roleBadgeColors: Record<UserRole, string> = {
-  USER: 'bg-green-50 text-green-700 border-green-200',
-  AGENT: 'bg-amber-50 text-amber-700 border-amber-200',
-  ADMIN: 'bg-purple-50 text-purple-700 border-purple-200',
-  SUPER_ADMIN: 'bg-blue-50 text-links border-blue-200',
+const roleTone: Record<UserRole, Tone> = {
+  USER: 'green',
+  AGENT: 'amber',
+  ADMIN: 'purple',
+  SUPER_ADMIN: 'blue',
 };
 
-const agentStatusColors: Record<AgentStatus, string> = {
-  PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
-  UNDER_REVIEW: 'bg-blue-50 text-links border-blue-200',
-  APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
+const agentStatusTone: Record<AgentStatus, Tone> = {
+  PENDING: 'amber',
+  UNDER_REVIEW: 'blue',
+  APPROVED: 'green',
+  REJECTED: 'red',
 };
 
-const typeBadgeColors: Record<BookingType, string> = {
-  FLIGHT: 'bg-blue-50 text-links border-blue-200',
-  HOTEL: 'bg-amber-50 text-amber-700 border-amber-200',
-  INSURANCE: 'bg-purple-50 text-purple-700 border-purple-200',
+const typeTone: Record<BookingType, Tone> = {
+  FLIGHT: 'blue',
+  HOTEL: 'amber',
+  INSURANCE: 'purple',
 };
 
 const typeBorderColors: Record<BookingType, string> = {
-  FLIGHT: 'border-l-blue-500',
-  HOTEL: 'border-l-amber-500',
+  FLIGHT: 'border-l-links',
+  HOTEL: 'border-l-warn',
   INSURANCE: 'border-l-purple-500',
 };
-
-const GRAY_BADGE = 'bg-gray-100 text-gray-600 border-gray-300';
 
 /**
  * Status strings come straight from three different booking tables (and, through
  * them, from the supplier). Match case-insensitively and fall back to gray so an
  * unrecognised value renders as a neutral badge instead of `undefined` classes.
  */
-function statusBadgeColor(status: string): string {
+function statusTone(status: string): Tone {
   switch (status?.toUpperCase()) {
     case 'CONFIRMED':
     case 'SUCCESS':
     case 'PAID':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'green';
     case 'PENDING':
     case 'INITIATED':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'amber';
     case 'FAILED':
     case 'CANCELLED':
-      return 'bg-red-50 text-red-700 border-red-200';
+      return 'red';
     default:
-      return GRAY_BADGE;
+      return 'slate';
   }
 }
 
@@ -77,72 +78,54 @@ const FILTERS: Array<{ key: 'ALL' | BookingType; label: string }> = [
   { key: 'INSURANCE', label: 'Insurance' },
 ];
 
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({ label, value, mono, strong }: { label: string; value: string; mono?: boolean; strong?: boolean }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wider text-gray-400">{label}</p>
-      <p className={`text-sm text-gray-700 mt-0.5 ${mono ? 'font-mono' : ''}`}>{value}</p>
+      <p className={LABEL}>{label}</p>
+      <p className={`mt-0.5 text-sm text-foreground ${strong ? 'font-bold' : 'font-semibold'} ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }
 
 function BookingCard({ booking }: { booking: UserBooking }) {
   return (
-    <div
-      className={`bg-peace border border-tertiary-button border-l-4 ${typeBorderColors[booking.type] ?? 'border-l-gray-600'} rounded-xl p-5`}
-    >
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span
-            className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border ${typeBadgeColors[booking.type] ?? GRAY_BADGE}`}
-          >
-            {booking.type}
-          </span>
-          <span
-            className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusBadgeColor(booking.status)}`}
-          >
+    <div className={`${CARD} border-l-4 ${typeBorderColors[booking.type] ?? 'border-l-inactive'} p-5 transition-shadow hover:shadow-md`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={typeTone[booking.type] ?? 'slate'}>{booking.type}</Badge>
+          <Badge tone={statusTone(booking.status)} dot>
             {booking.status}
-          </span>
-          <span className="text-xs font-mono text-gray-500">{booking.bookingId}</span>
+          </Badge>
+          <span className="font-mono text-xs text-inactive">{booking.bookingId}</span>
         </div>
         <div className="text-right">
-          <p className="text-base font-semibold text-foreground">{money(booking.totalAmount)}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{formatDate(booking.createdAt)}</p>
+          <p className="text-lg font-extrabold tracking-tight text-foreground">{money(booking.totalAmount)}</p>
+          <p className="mt-0.5 text-xs text-inactive">{formatDate(booking.createdAt)}</p>
         </div>
       </div>
 
       {/* Type-specific detail */}
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-5">
         {booking.type === 'FLIGHT' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400">Route</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">
-                {booking.fromCode ?? '-'} → {booking.toCode ?? '-'}
-              </p>
+              <Field label="Route" value={`${booking.fromCode ?? '-'} → ${booking.toCode ?? '-'}`} strong />
             </div>
             <Field label="Airline" value={booking.airline ?? '-'} />
             <Field label="Departure" value={formatDate(booking.departureDate)} />
             <Field label="PNR" value={booking.pnr ?? '-'} mono />
-            <Field
-              label="Passengers"
-              value={booking.passengerCount != null ? String(booking.passengerCount) : '-'}
-            />
+            <Field label="Passengers" value={booking.passengerCount != null ? String(booking.passengerCount) : '-'} />
           </>
         )}
 
         {booking.type === 'HOTEL' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400">Hotel</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{booking.hotelName ?? '-'}</p>
+              <Field label="Hotel" value={booking.hotelName ?? '-'} strong />
             </div>
             <Field label="City" value={booking.city ?? '-'} />
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400">Stay</p>
-              <p className="text-sm text-gray-700 mt-0.5">
-                {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}
-              </p>
+              <Field label="Stay" value={`${formatDate(booking.checkInDate)} → ${formatDate(booking.checkOutDate)}`} />
             </div>
             <Field label="Nights" value={booking.nights != null ? String(booking.nights) : '-'} />
             <Field label="Confirmation" value={booking.confirmationId ?? '-'} mono />
@@ -152,30 +135,21 @@ function BookingCard({ booking }: { booking: UserBooking }) {
         {booking.type === 'INSURANCE' && (
           <>
             <div className="col-span-2 md:col-span-1">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400">Policy Type</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{booking.policyType ?? '-'}</p>
+              <Field label="Policy Type" value={booking.policyType ?? '-'} strong />
             </div>
             <div className="col-span-2 md:col-span-2">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400">Cover Period</p>
-              <p className="text-sm text-gray-700 mt-0.5">
-                {formatDate(booking.startDate)} → {formatDate(booking.endDate)}
-              </p>
+              <Field label="Cover Period" value={`${formatDate(booking.startDate)} → ${formatDate(booking.endDate)}`} />
             </div>
             <Field label="Policy No." value={booking.policyNumber ?? '-'} mono />
-            <Field
-              label="Travellers"
-              value={booking.travellerCount != null ? String(booking.travellerCount) : '-'}
-            />
+            <Field label="Travellers" value={booking.travellerCount != null ? String(booking.travellerCount) : '-'} />
           </>
         )}
       </div>
 
       {booking.promoCode && (
-        <div className="mt-4 pt-3 border-t border-tertiary-button flex items-center gap-2">
-          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
-            Coupon: {booking.promoCode}
-          </span>
-          <span className="text-xs text-emerald-700">−{money(booking.discountAmount)}</span>
+        <div className="mt-4 flex items-center gap-2 border-t border-tertiary-button pt-3">
+          <Badge tone="green">Coupon: {booking.promoCode}</Badge>
+          <span className="text-xs font-bold text-success">−{money(booking.discountAmount)}</span>
         </div>
       )}
     </div>
@@ -201,9 +175,9 @@ export default function UserDetail() {
       try {
         const result = await api.getUserDetail(id);
         if (!cancelled) setData(result);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (cancelled) return;
-        const msg: string = err?.message || 'Failed to load user';
+        const msg: string = (err instanceof Error && err.message) || 'Failed to load user';
         setError(/404|not found/i.test(msg) ? 'User not found' : msg);
       } finally {
         if (!cancelled) setLoading(false);
@@ -217,173 +191,112 @@ export default function UserDetail() {
 
   const bookings = useMemo(() => {
     const list = data?.bookings ?? [];
-    const sorted = [...list].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    const sorted = [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return filter === 'ALL' ? sorted : sorted.filter((b) => b.type === filter);
   }, [data, filter]);
 
   const backLink = (
     <button
       onClick={() => navigate('/users')}
-      className="text-sm text-gray-500 hover:text-foreground transition-colors mb-6"
+      className="group inline-flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20"
     >
-      ← Back to users
+      <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+      Back to users
     </button>
   );
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {backLink}
-        <div className="text-gray-500 text-sm">Loading...</div>
+      <div className={PAGE}>
+        <PageHeader eyebrow="People" title="User details" subtitle="Loading user…" actions={backLink} />
+        <div className={CARD}>
+          <Spinner label="Loading user…" />
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {backLink}
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
-          {error ?? 'User not found'}
-        </div>
+      <div className={PAGE}>
+        <PageHeader eyebrow="People" title="User details" actions={backLink} />
+        <Alert tone="error">{error ?? 'User not found'}</Alert>
       </div>
     );
   }
 
   const { user, summary } = data;
 
-  const stats = [
-    { label: 'Total Bookings', value: String(summary.total) },
-    { label: 'Flights', value: String(summary.flights) },
-    { label: 'Hotels', value: String(summary.hotels) },
-    { label: 'Insurance', value: String(summary.insurance) },
-    { label: 'Total Spent', value: money(summary.totalSpent) },
+  const stats: { label: string; value: string; icon: typeof Ticket; accent: Accent }[] = [
+    { label: 'Total Bookings', value: String(summary.total), icon: Ticket, accent: 'blue' },
+    { label: 'Flights', value: String(summary.flights), icon: Plane, accent: 'teal' },
+    { label: 'Hotels', value: String(summary.hotels), icon: Building2, accent: 'orange' },
+    { label: 'Insurance', value: String(summary.insurance), icon: ShieldCheck, accent: 'purple' },
+    { label: 'Total Spent', value: money(summary.totalSpent), icon: Wallet, accent: 'green' },
   ];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {backLink}
-
+    <div className={PAGE}>
       {/* Profile header */}
-      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 bg-primary-button rounded-full flex items-center justify-center text-peace text-xl font-medium shrink-0">
-            {user.profilePicture ? (
-              <img src={user.profilePicture} alt="" className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              user.name?.charAt(0).toUpperCase()
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-foreground truncate">{user.name}</h1>
-              <span
-                className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${roleBadgeColors[user.role] ?? GRAY_BADGE}`}
-              >
-                {user.role}
-              </span>
-              <span
-                className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
-                  user.emailVerified
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : GRAY_BADGE
-                }`}
-              >
-                {user.emailVerified ? 'Verified' : 'Unverified'}
-              </span>
-              <span
-                className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${
-                  user.isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-red-50 text-red-700 border-red-200'
-                }`}
-              >
-                {user.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1 truncate">{user.email}</p>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
-              <Field label="Provider" value={user.provider?.toLowerCase() ?? '-'} />
-              <Field label="Joined" value={formatDate(user.createdAt)} />
-              <Field
-                label="Last Login"
-                value={user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-              />
-            </div>
-          </div>
+      <PageHeader
+        eyebrow="People"
+        title={user.name}
+        subtitle={user.email}
+        actions={backLink}
+        stats={
+          <>
+            <HeroStat icon={Ticket} label="Total bookings" value={String(summary.total)} />
+            <HeroStat icon={Wallet} label="Total spent" value={money(summary.totalSpent)} />
+            <HeroStat icon={Clock} label="Last login" value={user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'} />
+          </>
+        }
+      >
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Badge tone={roleTone[user.role] ?? 'slate'}>{user.role}</Badge>
+          <Badge tone={user.emailVerified ? 'green' : 'slate'}>{user.emailVerified ? 'Verified' : 'Unverified'}</Badge>
+          <Badge tone={user.isActive ? 'green' : 'red'} dot>
+            {user.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+          <span className="ml-1 text-xs font-semibold text-white/75">
+            Provider <span className="capitalize text-white">{user.provider?.toLowerCase() ?? '-'}</span> · Joined{' '}
+            <span className="text-white">{formatDate(user.createdAt)}</span> · Last login{' '}
+            <span className="text-white">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}</span>
+          </span>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Booking partner */}
       {user.agentProfile && (
-        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-5 mb-6">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-            Booking Partner
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <p className="text-sm font-medium text-foreground">{user.agentProfile.agencyName}</p>
-            <span
-              className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                agentStatusColors[user.agentProfile.status] ?? GRAY_BADGE
-              }`}
-            >
-              {user.agentProfile.status.replace('_', ' ')}
-            </span>
+        <Panel title="Booking Partner" className="mb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <IconTile icon={Handshake} accent="orange" size="sm" />
+            <p className="text-sm font-bold text-foreground">{user.agentProfile.agencyName}</p>
+            <Badge tone={agentStatusTone[user.agentProfile.status] ?? 'slate'}>{user.agentProfile.status.replace('_', ' ')}</Badge>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
-            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-              {stat.label}
-            </p>
-            <p className="text-xl font-semibold text-foreground mt-1.5">{stat.value}</p>
-          </div>
+          <StatTile key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} accent={stat.accent} />
         ))}
       </div>
 
       {/* Ticket history */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Ticket History</h2>
-        <div className="flex gap-1 bg-peace border border-tertiary-button rounded-lg p-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                filter === f.key
-                  ? 'bg-primary-button/15 text-links'
-                  : 'text-gray-500 hover:text-foreground'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {data.bookings.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">This user hasn't booked anything yet.</p>
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No bookings in this category.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((booking) => (
-            <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-          ))}
-        </div>
-      )}
+      <Panel title="Ticket History" aside={<Tabs label="Filter bookings" options={FILTERS} active={filter} onChange={setFilter} />}>
+        {data.bookings.length === 0 ? (
+          <EmptyState icon={ReceiptText} title="No bookings yet" message="This user hasn't booked anything yet." />
+        ) : bookings.length === 0 ? (
+          <EmptyState icon={ReceiptText} title="Nothing here" message="No bookings in this category." />
+        ) : (
+          <div className="space-y-3">
+            {bookings.map((booking) => (
+              <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

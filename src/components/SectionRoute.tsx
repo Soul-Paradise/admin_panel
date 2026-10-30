@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { useAccess } from '../hooks/useAccess';
 import type { AdminPage } from '../lib/api';
+import { BTN_PRIMARY, CARD } from '../lib/ui-styles';
+import { EmptyState, Spinner } from './ui';
 
 /**
  * Refuses a section the admin has no grant for. Hiding the sidebar link alone
@@ -23,30 +25,23 @@ export default function SectionRoute({
   const { canRead, isLoading } = useAccess();
 
   if (isLoading) {
-    return (
-      <div className="p-4 text-sm text-gray-500 sm:p-6">Loading…</div>
-    );
+    return <Spinner />;
   }
 
   if (!canRead(page)) {
     return (
       <div className="px-4 py-6 sm:px-6">
-        <div className="mx-auto mt-16 max-w-md rounded-xl border border-tertiary-button bg-peace p-6 text-center shadow-sm sm:mt-24 sm:p-8">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
-            <Lock className="h-6 w-6 text-gray-500" strokeWidth={1.75} />
-          </div>
-          <h2 className="mb-1 text-base font-bold text-foreground">
-            No access to this section
-          </h2>
-          <p className="text-sm text-gray-500 mb-5">
-            Ask a super admin to grant you access if you need it.
-          </p>
-          <Link
-            to="/"
-            className="inline-block rounded-lg bg-primary-button px-4 py-2 text-sm font-semibold text-peace shadow-sm transition-colors duration-200 hover:bg-secondary-button"
-          >
-            Back to dashboard
-          </Link>
+        <div className={`mx-auto mt-16 max-w-md sm:mt-24 ${CARD}`}>
+          <EmptyState
+            icon={Lock}
+            title="No access to this section"
+            message="Ask a super admin to grant you access if you need it."
+            action={
+              <Link to="/" className={BTN_PRIMARY}>
+                Back to dashboard
+              </Link>
+            }
+          />
         </div>
       </div>
     );

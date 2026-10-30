@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AccessProvider } from './contexts/AccessContext';
+import { SiteImagesProvider } from './contexts/SiteImagesContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/PageLoader';
@@ -19,6 +20,13 @@ import Utilities from './pages/Utilities';
 import UserAccess from './pages/UserAccess';
 import AuditLogs from './pages/AuditLogs';
 import CustomPayments from './pages/CustomPayments';
+import Orders from './pages/Orders';
+import Policies from './pages/Policies';
+import PolicyEditor from './pages/PolicyEditor';
+import SiteContent from './pages/SiteContent';
+import SitePageEditor from './pages/SitePageEditor';
+import MediaLibrary from './pages/MediaLibrary';
+import Destinations from './pages/Destinations';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -36,6 +44,7 @@ function LoginRoute() {
 
 export default function App() {
   return (
+    <SiteImagesProvider>
     <BrowserRouter>
       <AuthProvider>
         <AccessProvider>
@@ -80,6 +89,14 @@ export default function App() {
                 element={
                   <SectionRoute page="BOOKING_PARTNERS">
                     <Agents />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="orders"
+                element={
+                  <SectionRoute page="ORDERS">
+                    <Orders />
                   </SectionRoute>
                 }
               />
@@ -132,6 +149,54 @@ export default function App() {
                 }
               />
               <Route
+                path="policies"
+                element={
+                  <SectionRoute page="POLICIES">
+                    <Policies />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="policies/:slug"
+                element={
+                  <SectionRoute page="POLICIES">
+                    <PolicyEditor />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="site-content"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <SiteContent />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="site-content/:page"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <SitePageEditor />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="media"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <MediaLibrary />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="destinations"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <Destinations />
+                  </SectionRoute>
+                }
+              />
+              <Route
                 path="user-access"
                 element={
                   <SectionRoute page="USER_ACCESS">
@@ -156,5 +221,6 @@ export default function App() {
         </AccessProvider>
       </AuthProvider>
     </BrowserRouter>
+    </SiteImagesProvider>
   );
 }

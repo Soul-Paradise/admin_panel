@@ -6,8 +6,10 @@ import {
   type AdminPage,
   type PageAccessMap,
 } from '../lib/api';
-import { ChevronDown, ShieldAlert } from 'lucide-react';
+import { ChevronDown, PencilLine, Search, ShieldAlert, ShieldCheck, UserX, Users } from 'lucide-react';
 import { useAccess } from '../hooks/useAccess';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, SectionTitle } from '../components/ui';
+import { BTN_GHOST, BTN_PRIMARY, BTN_SM, CARD, INPUT, PAGE } from '../lib/ui-styles';
 
 type LevelKey = 'NONE' | AccessLevel;
 
@@ -19,12 +21,15 @@ const PAGE_META: Record<AdminPage, { label: string; hint: string; sensitive?: bo
   DASHBOARD: { label: 'Dashboard', hint: 'Platform totals and overview' },
   USERS: { label: 'User Details', hint: 'Customer accounts and ticket history' },
   BOOKING_PARTNERS: { label: 'Booking Partners', hint: 'Agent applications and approvals' },
+  ORDERS: { label: 'Orders', hint: 'Every booking with the commission earned on it' },
   COMMISSION: { label: 'Commission', hint: 'Service commission rates' },
   COUPONS: { label: 'Coupons', hint: 'Discount codes and usage limits' },
   OFFERS: { label: 'Offers', hint: 'Promotional offers on the homepage' },
   REVIEWS: { label: 'Reviews', hint: 'Customer reviews and moderation' },
   UTILITIES: { label: 'Utilities', hint: 'Reports and platform tools' },
   CUSTOM_PAYMENTS: { label: 'Custom Payments', hint: 'Payments made from the website Custom Payment tab' },
+  POLICIES: { label: 'Policies', hint: 'Terms, privacy and other legal pages' },
+  SITE_CONTENT: { label: 'Site Content', hint: 'Public pages: text, sections and images' },
   USER_ACCESS: {
     label: 'User Access',
     hint: 'Admin permissions - this page',
@@ -38,21 +43,30 @@ const FALLBACK_PAGES: AdminPage[] = [
   'DASHBOARD',
   'USERS',
   'BOOKING_PARTNERS',
+  'ORDERS',
   'COMMISSION',
   'COUPONS',
   'OFFERS',
   'REVIEWS',
   'UTILITIES',
   'CUSTOM_PAYMENTS',
+  'POLICIES',
+  'SITE_CONTENT',
   'USER_ACCESS',
   'AUDIT_LOGS',
 ];
 
+// Active segment colour per level, on the site's pill segmented control.
 const LEVELS: { key: LevelKey; label: string; on: string }[] = [
-  { key: 'NONE', label: 'None', on: 'bg-peace text-gray-600 ring-1 ring-gray-300' },
-  { key: 'READ', label: 'Read', on: 'bg-blue-50 text-links ring-1 ring-blue-200' },
-  { key: 'WRITE', label: 'Write', on: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  { key: 'NONE', label: 'None', on: 'bg-peace text-foreground shadow-sm' },
+  { key: 'READ', label: 'Read', on: 'bg-peace text-links shadow-sm' },
+  { key: 'WRITE', label: 'Write', on: 'bg-peace text-success shadow-sm' },
 ];
+
+/** The site's results SortTabs track, used for every segmented control here. */
+const SEGMENT_TRACK = 'inline-flex shrink-0 gap-0.5 rounded-full bg-slate-100 p-1';
+const SEGMENT_BTN =
+  'rounded-full px-3 py-1 text-xs font-bold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60';
 
 function levelOf(map: PageAccessMap, page: AdminPage): LevelKey {
   return map[page] ?? 'NONE';
@@ -85,7 +99,7 @@ function LevelPicker({
     <div
       role="group"
       aria-label={`Access level for ${label}`}
-      className="inline-flex shrink-0 rounded-lg bg-background p-0.5 ring-1 ring-tertiary-button"
+      className={SEGMENT_TRACK}
     >
       {LEVELS.map((lvl) => {
         const active = value === lvl.key;
@@ -96,8 +110,8 @@ function LevelPicker({
             disabled={disabled}
             aria-pressed={active}
             onClick={() => onChange(lvl.key)}
-            className={`rounded-[7px] px-2.5 py-1 text-xs font-bold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
-              active ? lvl.on : 'text-gray-500 hover:text-foreground'
+            className={`${SEGMENT_BTN} ${
+              active ? lvl.on : 'text-inactive hover:text-foreground'
             }`}
           >
             {lvl.label}
@@ -234,71 +248,95 @@ export default function UserAccess() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="mx-auto mt-16 max-w-md rounded-xl border border-tertiary-button bg-peace p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
-            <ShieldAlert className="h-6 w-6 text-gray-500" strokeWidth={1.75} />
+      <div className={PAGE}>
+        <PageHeader eyebrow="Security" title="User Access" subtitle="Choose what each admin can open." />
+        <div className={`mx-auto mt-4 max-w-md p-8 text-center ${CARD}`}>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-tint text-links">
+            <ShieldAlert className="h-7 w-7" strokeWidth={1.75} />
           </div>
-          <h1 className="mb-1 text-base font-bold text-foreground">Restricted</h1>
-          <p className="text-sm text-gray-500">Only a super admin can manage page access.</p>
+          <h1 className="mb-1 text-lg font-extrabold text-foreground">Restricted</h1>
+          <p className="text-sm text-inactive">Only a super admin can manage page access.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">User Access</h1>
-        <p className="mt-2 text-sm text-foreground">
-          Choose what each admin can open. A section left at <strong className="font-bold">None</strong> is
-          hidden from their sidebar and refused by the API.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8">
+      <PageHeader
+        eyebrow="Security"
+        title="User Access"
+        subtitle={
+          <>
+            Choose what each admin can open. A section left at <strong className="font-bold text-white">None</strong> is
+            hidden from their sidebar and refused by the API.
+          </>
+        }
+        stats={
+          <>
+            <HeroStat icon={Users} label="Admins" value={loading ? null : admins.length.toLocaleString('en-IN')} />
+            <HeroStat
+              icon={ShieldCheck}
+              label="Super admins"
+              value={loading ? null : admins.filter((a) => a.role === 'SUPER_ADMIN').length.toLocaleString('en-IN')}
+            />
+            <HeroStat icon={PencilLine} label="Unsaved changes" value={loading ? null : dirtyAdmins.length.toLocaleString('en-IN')} />
+          </>
+        }
+      />
 
       {message && (
-        <div
-          role="alert"
-          className={`mb-4 rounded-lg border px-4 py-3 text-sm font-semibold ${
-            message.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-red-200 bg-red-50 text-red-700'
-          }`}
-        >
-          {message.text}
+        <div className="mb-4">
+          <Alert tone={message.type}>{message.text}</Alert>
         </div>
       )}
 
-      {admins.length > 4 && (
-        <div className="mb-4">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search admins by name or email…"
-            className="block w-full rounded-lg border border-gray-300 bg-peace px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:max-w-sm"
-          />
-        </div>
-      )}
+      <SectionTitle
+        aside={
+          <div className="flex flex-wrap items-center gap-3">
+            {admins.length > 4 && (
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-inactive" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search admins by name or email…"
+                  className={`${INPUT} pl-10`}
+                />
+              </div>
+            )}
+            {!loading && (
+              <span className="text-sm text-inactive">
+                <span className="font-bold text-foreground">{visible.length}</span> of {admins.length}
+              </span>
+            )}
+          </div>
+        }
+      >
+        Admins
+      </SectionTitle>
 
       {loading ? (
         <div className="space-y-4">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-xl border border-tertiary-button bg-peace p-5 shadow-sm">
-              <div className="h-4 w-40 animate-pulse rounded bg-tertiary-button" />
+            <div key={i} className={`p-5 ${CARD}`}>
+              <div className="h-4 w-40 animate-pulse rounded-full bg-slate-100" />
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {Array.from({ length: 6 }).map((_, j) => (
-                  <div key={j} className="h-12 animate-pulse rounded-lg bg-background" />
+                  <div key={j} className="h-12 animate-pulse rounded-xl bg-slate-100" />
                 ))}
               </div>
             </div>
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <div className="rounded-xl border border-tertiary-button bg-peace py-16 text-center shadow-sm">
-          <p className="text-sm text-gray-500">
-            {search ? 'No admin matches that search.' : 'No admins yet. Promote a user to admin to grant them access.'}
-          </p>
+        <div className={CARD}>
+          <EmptyState
+            icon={UserX}
+            title={search ? 'No match' : 'No admins yet'}
+            message={search ? 'No admin matches that search.' : 'No admins yet. Promote a user to admin to grant them access.'}
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -315,40 +353,26 @@ export default function UserAccess() {
             return (
               <section
                 key={admin.id}
-                className={`overflow-hidden rounded-xl border bg-peace shadow-sm transition-colors ${
-                  changed.length ? 'border-warn' : 'border-tertiary-button'
-                }`}
+                className={`overflow-hidden ${CARD} transition-colors ${changed.length ? '!border-warn ring-2 ring-warn/20' : ''}`}
               >
                 {/* Admin header */}
-                <div className="flex items-start gap-3 border-b border-tertiary-button p-4 sm:items-center">
+                <div className="flex items-start gap-3 border-b border-tertiary-button px-5 py-4 sm:items-center">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-button text-xs font-bold text-peace">
                     {initials(admin.name)}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-bold text-foreground">{admin.name}</span>
-                      {isSuper && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-                          Super Admin
-                        </span>
-                      )}
-                      {!admin.isActive && (
-                        <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-600">
-                          Inactive
-                        </span>
-                      )}
-                      {changed.length > 0 && (
-                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-                          {changed.length} unsaved
-                        </span>
-                      )}
+                      <span className="text-base font-extrabold text-foreground">{admin.name}</span>
+                      {isSuper && <Badge tone="blue">Super Admin</Badge>}
+                      {!admin.isActive && <Badge tone="slate">Inactive</Badge>}
+                      {changed.length > 0 && <Badge tone="amber">{changed.length} unsaved</Badge>}
                     </div>
-                    <p className="truncate text-xs text-gray-500">{admin.email}</p>
+                    <p className="truncate text-xs text-inactive">{admin.email}</p>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
-                    <span className="hidden text-xs font-semibold text-gray-500 sm:inline">
+                    <span className="hidden text-xs font-semibold text-inactive sm:inline">
                       {granted} of {pages.length} sections
                       {writes > 0 && ` · ${writes} write`}
                     </span>
@@ -357,7 +381,7 @@ export default function UserAccess() {
                       onClick={() => setCollapsed((c) => ({ ...c, [admin.id]: !isCollapsed }))}
                       aria-expanded={!isCollapsed}
                       aria-label={isCollapsed ? `Show sections for ${admin.name}` : `Hide sections for ${admin.name}`}
-                      className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-background hover:text-foreground"
+                      className="rounded-full p-1.5 text-inactive transition-colors hover:bg-primary-tint hover:text-links"
                     >
                       <ChevronDown
                         className={`h-5 w-5 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
@@ -370,28 +394,30 @@ export default function UserAccess() {
                 {!isCollapsed && (
                   <>
                     {isSuper ? (
-                      <p className="px-4 py-6 text-sm text-gray-500">
+                      <p className="px-5 py-6 text-sm text-inactive">
                         Super admins always have full access to every section. There is nothing to
                         configure here.
                       </p>
                     ) : (
                       <>
                         {/* Bulk actions - granting all ten one control at a time was 20 clicks. */}
-                        <div className="flex flex-wrap items-center gap-2 border-b border-tertiary-button bg-background px-4 py-2.5">
-                          <span className="mr-1 text-xs font-semibold text-gray-500">Set all:</span>
-                          {LEVELS.map((lvl) => (
-                            <button
-                              key={lvl.key}
-                              type="button"
-                              onClick={() => setAll(admin.id, lvl.key)}
-                              className="rounded-lg border border-tertiary-button bg-peace px-2.5 py-1 text-xs font-bold text-gray-600 transition-colors hover:border-secondary-button hover:text-foreground"
-                            >
-                              {lvl.label}
-                            </button>
-                          ))}
+                        <div className="flex flex-wrap items-center gap-2 border-b border-tertiary-button bg-background px-5 py-2.5">
+                          <span className="mr-1 text-xs font-semibold text-inactive">Set all:</span>
+                          <div className={SEGMENT_TRACK}>
+                            {LEVELS.map((lvl) => (
+                              <button
+                                key={lvl.key}
+                                type="button"
+                                onClick={() => setAll(admin.id, lvl.key)}
+                                className={`${SEGMENT_BTN} text-inactive hover:bg-peace hover:text-links`}
+                              >
+                                {lvl.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="grid gap-2 p-4 sm:grid-cols-2">
+                        <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
                           {pages.map((page) => {
                             const meta = PAGE_META[page] ?? { label: page, hint: '' };
                             const level = levelOf(draft, page);
@@ -400,13 +426,13 @@ export default function UserAccess() {
                             return (
                               <div
                                 key={page}
-                                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-                                  isChanged ? 'border-amber-200 bg-amber-50/50' : 'border-tertiary-button'
+                                className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 transition-colors ${
+                                  isChanged ? 'border-warn/40 bg-warn/10' : 'border-tertiary-button hover:border-links/30'
                                 }`}
                               >
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-bold text-foreground">{meta.label}</p>
-                                  <p className="truncate text-xs text-gray-500">
+                                  <p className="truncate text-xs text-inactive">
                                     {meta.sensitive && level === 'WRITE'
                                       ? 'Lets them change any admin’s access'
                                       : meta.hint}
@@ -424,7 +450,7 @@ export default function UserAccess() {
                         </div>
 
                         {changed.length > 0 && (
-                          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-tertiary-button bg-background px-4 py-3">
+                          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-tertiary-button bg-background px-5 py-3">
                             <span className="mr-auto text-xs font-semibold text-amber-700">
                               {changed.length} section{changed.length === 1 ? '' : 's'} changed
                             </span>
@@ -432,7 +458,7 @@ export default function UserAccess() {
                               type="button"
                               onClick={() => resetRow(admin)}
                               disabled={saving || savingAll}
-                              className="rounded-lg border border-tertiary-button bg-peace px-3 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:border-secondary-button hover:text-foreground disabled:opacity-50"
+                              className={`${BTN_GHOST} ${BTN_SM}`}
                             >
                               Discard
                             </button>
@@ -440,7 +466,7 @@ export default function UserAccess() {
                               type="button"
                               onClick={() => handleSave(admin)}
                               disabled={saving || savingAll}
-                              className="rounded-lg bg-primary-button px-4 py-1.5 text-xs font-bold text-peace shadow-sm transition-colors hover:bg-secondary-button disabled:opacity-50"
+                              className={`${BTN_PRIMARY} ${BTN_SM}`}
                             >
                               {saving ? 'Saving…' : 'Save changes'}
                             </button>
@@ -459,8 +485,8 @@ export default function UserAccess() {
       {/* Catches the case of editing several admins and forgetting to save the
           ones scrolled off screen. */}
       {dirtyAdmins.length > 1 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary-button bg-peace/95 px-4 py-3 backdrop-blur-sm lg:left-64">
-          <div className="mx-auto flex max-w-5xl items-center gap-3">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary-button bg-peace/95 px-4 py-3 shadow-[0_-4px_16px_rgba(14,34,56,0.06)] backdrop-blur-sm lg:left-[var(--sidebar-w,17rem)]">
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
             <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
               {dirtyAdmins.length} admins have unsaved changes
             </span>
@@ -468,7 +494,7 @@ export default function UserAccess() {
               type="button"
               onClick={handleSaveAll}
               disabled={savingAll}
-              className="shrink-0 rounded-lg bg-primary-button px-4 py-2 text-xs font-bold text-peace shadow-sm transition-colors hover:bg-secondary-button disabled:opacity-50 sm:text-sm"
+              className={`${BTN_PRIMARY} shrink-0`}
             >
               {savingAll ? 'Saving…' : 'Save all'}
             </button>

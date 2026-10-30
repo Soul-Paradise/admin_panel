@@ -1,5 +1,24 @@
 import { useEffect, useState, useCallback } from 'react';
+import { CheckCircle2, LayoutGrid, Plus, Tag } from 'lucide-react';
 import { api, type Offer, type OfferCategory, type ColorTheme } from '../lib/api';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner } from '../components/ui';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  FIELD_LABEL,
+  GRADIENTS,
+  INPUT,
+  LINK_BTN,
+  LINK_BTN_DANGER,
+  PAGE,
+  SELECT,
+  TABLE_HEAD,
+  TBODY,
+  TH,
+  TONES,
+  TROW,
+  type Tone,
+} from '../lib/ui-styles';
 
 const CATEGORY_LABELS: Record<OfferCategory, string> = {
   ALL_OFFERS: 'All Offers',
@@ -13,22 +32,23 @@ const CATEGORY_LABELS: Record<OfferCategory, string> = {
 const CATEGORIES: OfferCategory[] = ['ALL_OFFERS', 'BANK_OFFERS', 'FLIGHTS', 'HOTELS', 'HOLIDAYS', 'VISA'];
 const COLOR_THEMES: ColorTheme[] = ['blue', 'green', 'orange', 'purple', 'teal', 'pink'];
 
+/** Same gradients the homepage Offers cards use for each theme. */
 const COLOR_PREVIEW: Record<ColorTheme, string> = {
-  blue: 'bg-gradient-to-br from-blue-500 to-indigo-600',
-  green: 'bg-gradient-to-br from-emerald-500 to-teal-600',
-  orange: 'bg-gradient-to-br from-orange-500 to-red-500',
-  purple: 'bg-gradient-to-br from-purple-500 to-violet-600',
-  teal: 'bg-gradient-to-br from-teal-500 to-cyan-600',
-  pink: 'bg-gradient-to-br from-pink-500 to-rose-600',
+  blue: `bg-gradient-to-br ${GRADIENTS.blue}`,
+  green: `bg-gradient-to-br ${GRADIENTS.green}`,
+  orange: `bg-gradient-to-br ${GRADIENTS.orange}`,
+  purple: `bg-gradient-to-br ${GRADIENTS.purple}`,
+  teal: `bg-gradient-to-br ${GRADIENTS.teal}`,
+  pink: `bg-gradient-to-br ${GRADIENTS.pink}`,
 };
 
-const categoryBadgeColors: Record<OfferCategory, string> = {
-  ALL_OFFERS: 'bg-gray-100 text-gray-600 border-gray-300',
-  BANK_OFFERS: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  FLIGHTS: 'bg-blue-50 text-links border-blue-200',
-  HOTELS: 'bg-amber-50 text-amber-700 border-amber-200',
-  HOLIDAYS: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  VISA: 'bg-purple-50 text-purple-700 border-purple-200',
+const categoryTone: Record<OfferCategory, Tone> = {
+  ALL_OFFERS: 'slate',
+  BANK_OFFERS: 'amber',
+  FLIGHTS: 'blue',
+  HOTELS: 'amber',
+  HOLIDAYS: 'green',
+  VISA: 'purple',
 };
 
 const EMPTY_FORM = {
@@ -41,6 +61,10 @@ const EMPTY_FORM = {
   validFrom: '',
   validUntil: '',
 };
+
+function errorText(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
 
 export default function Offers() {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -126,8 +150,8 @@ export default function Offers() {
       }
       closeForm();
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to save offer' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to save offer') });
     } finally {
       setSaving(false);
     }
@@ -139,8 +163,8 @@ export default function Offers() {
       await api.deleteOffer(id);
       setMessage({ type: 'success', text: 'Offer deleted' });
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to delete offer' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to delete offer') });
     }
   }
 
@@ -148,79 +172,73 @@ export default function Offers() {
     try {
       await api.updateOffer(offer.id, { isActive: !offer.isActive });
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to update offer' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to update offer') });
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Offers</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage homepage offer banners</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors"
-        >
-          + New Offer
-        </button>
-      </div>
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Promotions"
+        title="Offers"
+        subtitle="Manage homepage offer banners"
+        actions={
+          <button onClick={openCreate} className={BTN_PRIMARY}>
+            <Plus className="h-4 w-4" /> New Offer
+          </button>
+        }
+        stats={
+          <>
+            <HeroStat icon={Tag} label="Total offers" value={loading ? null : offers.length} />
+            <HeroStat icon={CheckCircle2} label="Active" value={loading ? null : offers.filter((o) => o.isActive).length} />
+            <HeroStat icon={LayoutGrid} label="Categories" value={loading ? null : new Set(offers.map((o) => o.category)).size} />
+          </>
+        }
+      />
 
-      {/* Message */}
       {message && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.text}
+        <div className="mb-4">
+          <Alert tone={message.type}>{message.text}</Alert>
         </div>
       )}
 
       {/* Form */}
       {showForm && (
-        <div className="mb-6 bg-peace border border-tertiary-button rounded-xl shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            {editingId ? 'Edit Offer' : 'New Offer'}
-          </h2>
+        <Panel title={editingId ? 'Edit Offer' : 'New Offer'} className="animate-fade-up mb-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Title */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
+              <label className={FIELD_LABEL}>Title</label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                className={INPUT}
                 placeholder="e.g. Flat ₹1500 off on Flights"
               />
             </div>
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <label className={FIELD_LABEL}>Description</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 rows={2}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
+                className={`${INPUT} resize-none`}
                 placeholder="e.g. Use code SOUL1500 on your next international booking"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+              <label className={FIELD_LABEL}>Category</label>
               <select
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as OfferCategory }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={SELECT}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
@@ -230,15 +248,15 @@ export default function Offers() {
 
             {/* Color Theme */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Color Theme</label>
-              <div className="flex gap-2 flex-wrap">
+              <label className={FIELD_LABEL}>Color Theme</label>
+              <div className="flex flex-wrap gap-2.5 pt-1">
                 {COLOR_THEMES.map((theme) => (
                   <button
                     key={theme}
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, colorTheme: theme }))}
-                    className={`w-8 h-8 rounded-full ${COLOR_PREVIEW[theme]} transition-all ${
-                      form.colorTheme === theme ? 'ring-2 ring-foreground ring-offset-2 ring-offset-peace scale-110' : ''
+                    className={`h-8 w-8 rounded-full shadow-md ${COLOR_PREVIEW[theme]} transition-all ${
+                      form.colorTheme === theme ? 'scale-110 ring-2 ring-links ring-offset-2 ring-offset-peace' : 'hover:scale-105'
                     }`}
                     title={theme}
                   />
@@ -248,108 +266,119 @@ export default function Offers() {
 
             {/* Sort Order */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Sort Order</label>
+              <label className={FIELD_LABEL}>Sort Order</label>
               <input
                 type="number"
                 value={form.sortOrder}
                 onChange={(e) => setForm((f) => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={INPUT}
               />
             </div>
 
             {/* Is Active */}
-            <div className="flex items-center gap-3 pt-5">
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex items-center gap-3 pt-7">
+              <label className="relative inline-flex cursor-pointer items-center">
                 <input
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                  className="sr-only peer"
+                  className="peer sr-only"
                 />
-                <div className="w-10 h-5 bg-tertiary-button peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
+                <div className="peer h-6 w-11 rounded-full bg-tertiary-button transition-colors after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-peace after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-primary-button peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-links/30"></div>
               </label>
-              <span className="text-sm text-gray-700">Active</span>
+              <span className="text-sm font-semibold text-foreground">Active</span>
             </div>
 
             {/* Valid From */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Valid From (optional)</label>
+              <label className={FIELD_LABEL}>Valid From (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validFrom}
                 onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={INPUT}
               />
             </div>
 
             {/* Valid Until */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Valid Until (optional)</label>
+              <label className={FIELD_LABEL}>Valid Until (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validUntil}
                 onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={INPUT}
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4 pt-4 border-t border-tertiary-button">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 bg-primary-button hover:bg-secondary-button disabled:opacity-50 text-peace text-sm font-medium rounded-lg transition-colors"
-            >
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-tertiary-button pt-4">
+            <button onClick={handleSave} disabled={saving} className={BTN_PRIMARY}>
               {saving ? 'Saving...' : editingId ? 'Update Offer' : 'Create Offer'}
             </button>
-            <button
-              onClick={closeForm}
-              className="px-4 py-2 bg-background hover:bg-tertiary-button text-gray-700 text-sm font-medium rounded-lg transition-colors"
-            >
+            <button onClick={closeForm} className={BTN_GHOST}>
               Cancel
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Offers Table */}
       {loading ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
+        <Panel title="All offers" flush>
+          <Spinner label="Loading offers…" />
+        </Panel>
       ) : offers.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No offers yet. Create one to show it on the homepage.</p>
-        </div>
+        <Panel title="All offers" flush>
+          <EmptyState
+            icon={Tag}
+            title="No offers yet"
+            message="No offers yet. Create one to show it on the homepage."
+            action={
+              <button onClick={openCreate} className={BTN_PRIMARY}>
+                <Plus className="h-4 w-4" /> New Offer
+              </button>
+            }
+          />
+        </Panel>
       ) : (
-        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-x-auto">
+        <Panel
+          title="All offers"
+          aside={
+            <span className="text-sm font-semibold text-inactive">
+              {offers.length} offer{offers.length === 1 ? '' : 's'}
+            </span>
+          }
+          flush
+        >
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
-            <thead className="bg-background">
+            <thead className={TABLE_HEAD}>
               <tr className="border-b border-tertiary-button">
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Sort</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Validity</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3" />
+                <th className={TH}>Color</th>
+                <th className={TH}>Title</th>
+                <th className={TH}>Category</th>
+                <th className={TH}>Sort</th>
+                <th className={TH}>Validity</th>
+                <th className={TH}>Status</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-tertiary-button">
+            <tbody className={TBODY}>
               {offers.map((offer) => (
-                <tr key={offer.id} className="hover:bg-background transition-colors">
-                  <td className="px-4 py-3">
-                    <div className={`w-7 h-7 rounded-full ${COLOR_PREVIEW[offer.colorTheme as ColorTheme] ?? 'bg-gray-300'}`} />
+                <tr key={offer.id} className={TROW}>
+                  <td className="px-5 py-3.5">
+                    <div className={`h-8 w-8 rounded-lg shadow-md ${COLOR_PREVIEW[offer.colorTheme as ColorTheme] ?? 'bg-tertiary-button'}`} />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{offer.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{offer.description}</div>
+                  <td className="px-5 py-3.5">
+                    <div className="font-bold text-foreground">{offer.title}</div>
+                    <div className="mt-0.5 line-clamp-1 text-xs text-inactive">{offer.description}</div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${categoryBadgeColors[offer.category]}`}>
-                      {CATEGORY_LABELS[offer.category]}
-                    </span>
+                  <td className="px-5 py-3.5">
+                    <Badge tone={categoryTone[offer.category]}>{CATEGORY_LABELS[offer.category]}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{offer.sortOrder}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">
+                  <td className="px-5 py-3.5 text-inactive">{offer.sortOrder}</td>
+                  <td className="px-5 py-3.5 text-xs text-inactive">
                     {offer.validFrom || offer.validUntil ? (
                       <span>
                         {offer.validFrom ? new Date(offer.validFrom).toLocaleDateString() : '-'}
@@ -357,33 +386,27 @@ export default function Offers() {
                         {offer.validUntil ? new Date(offer.validUntil).toLocaleDateString() : '∞'}
                       </span>
                     ) : (
-                      <span className="text-gray-400">Always</span>
+                      <span>Always</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     <button
                       onClick={() => handleToggleActive(offer)}
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-pointer transition-colors ${
-                        offer.isActive
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
+                      title="Click to toggle"
+                      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-opacity hover:opacity-80 ${
+                        TONES[offer.isActive ? 'green' : 'slate']
                       }`}
                     >
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
                       {offer.isActive ? 'Active' : 'Inactive'}
                     </button>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button
-                        onClick={() => openEdit(offer)}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button rounded-lg transition-colors"
-                      >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-3">
+                      <button onClick={() => openEdit(offer)} className={LINK_BTN}>
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(offer.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                      >
+                      <button onClick={() => handleDelete(offer.id)} className={LINK_BTN_DANGER}>
                         Delete
                       </button>
                     </div>
@@ -393,6 +416,7 @@ export default function Offers() {
             </tbody>
           </table>
         </div>
+        </Panel>
       )}
     </div>
   );

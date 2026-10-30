@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Eye, ScrollText, Search, ShieldAlert } from 'lucide-react';
 import { api, type AdminPage, type AuditLogEntry } from '../lib/api';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner } from '../components/ui';
+import { FIELD_LABEL, INPUT, LABEL, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Tone } from '../lib/ui-styles';
 
 const PAGE_LABELS: Record<AdminPage, string> = {
   DASHBOARD: 'Dashboard',
   USERS: 'Users',
   BOOKING_PARTNERS: 'Booking Partners',
+  ORDERS: 'Orders',
   COMMISSION: 'Commission',
   COUPONS: 'Coupons',
   OFFERS: 'Offers',
   REVIEWS: 'Reviews',
   UTILITIES: 'Utilities',
   CUSTOM_PAYMENTS: 'Custom Payments',
+  POLICIES: 'Policies',
+  SITE_CONTENT: 'Site Content',
   USER_ACCESS: 'User Access',
   AUDIT_LOGS: 'Audit Logs',
 };
@@ -19,12 +25,15 @@ const PAGES: AdminPage[] = [
   'DASHBOARD',
   'USERS',
   'BOOKING_PARTNERS',
+  'ORDERS',
   'COMMISSION',
   'COUPONS',
   'OFFERS',
   'REVIEWS',
   'UTILITIES',
   'CUSTOM_PAYMENTS',
+  'POLICIES',
+  'SITE_CONTENT',
   'USER_ACCESS',
   'AUDIT_LOGS',
 ];
@@ -47,11 +56,11 @@ function relativeTime(iso: string): string {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-function statusColor(code: number): string {
-  if (code >= 500) return 'bg-red-50 text-red-700 border-red-200';
-  if (code >= 400) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (code >= 200 && code < 300) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  return 'bg-gray-100 text-gray-600 border-gray-300';
+function statusTone(code: number): Tone {
+  if (code >= 500) return 'red';
+  if (code >= 400) return 'amber';
+  if (code >= 200 && code < 300) return 'green';
+  return 'slate';
 }
 
 function truncate(value: string, max = 10): string {
@@ -114,53 +123,57 @@ export default function AuditLogs() {
     }
   }, [message]);
 
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">Audit Logs</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Every change made from the admin panel</p>
-        <p className="text-xs text-gray-400 mt-1">
-          This log is append-only - entries cannot be edited or deleted.
-        </p>
-      </div>
+  // Denied or failed entries among the rows on this page.
+  const flagged = logs.filter((l) => l.action === 'ACCESS_DENIED' || l.statusCode >= 400).length;
 
-      {/* Message */}
+  return (
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Security"
+        title="Audit Logs"
+        subtitle="Every change made from the admin panel"
+        note="This log is append-only - entries cannot be edited or deleted."
+        stats={
+          <>
+            <HeroStat icon={ScrollText} label="Total entries" value={loading ? null : total.toLocaleString('en-IN')} />
+            <HeroStat icon={Eye} label="Shown on this page" value={loading ? null : logs.length.toLocaleString('en-IN')} />
+            <HeroStat icon={ShieldAlert} label="Denied or errors (this page)" value={loading ? null : flagged.toLocaleString('en-IN')} />
+          </>
+        }
+      />
+
       {message && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.text}
+        <div className="mb-4">
+          <Alert tone={message.type}>{message.text}</Alert>
         </div>
       )}
 
       {/* Filters */}
-      <div className="mb-4 bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <Panel title="Filters" className="mb-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Actor email, action or entity"
-              className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
-            />
+            <label className={FIELD_LABEL}>Search</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-inactive" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Actor email, action or entity"
+                className={`${INPUT} pl-10`}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Section</label>
+            <label className={FIELD_LABEL}>Section</label>
             <select
               value={pageFilter}
               onChange={(e) => {
                 setPageFilter(e.target.value as AdminPage | '');
                 setPageNum(1);
               }}
-              className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className={SELECT}
             >
               <option value="">All sections</option>
               {PAGES.map((p) => (
@@ -173,7 +186,7 @@ export default function AuditLogs() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+              <label className={FIELD_LABEL}>From</label>
               <input
                 type="date"
                 value={from}
@@ -181,11 +194,11 @@ export default function AuditLogs() {
                   setFrom(e.target.value);
                   setPageNum(1);
                 }}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={`${INPUT} !px-3`}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+              <label className={FIELD_LABEL}>To</label>
               <input
                 type="date"
                 value={to}
@@ -193,36 +206,42 @@ export default function AuditLogs() {
                   setTo(e.target.value);
                   setPageNum(1);
                 }}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={`${INPUT} !px-3`}
               />
             </div>
           </div>
         </div>
-      </div>
+      </Panel>
 
       {/* Table */}
-      {loading ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
-      ) : logs.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No audit entries match these filters.</p>
-        </div>
-      ) : (
-        <>
-          <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-hidden">
+      <Panel
+        title="Activity"
+        aside={
+          <span className="text-sm text-inactive">
+            <span className="font-bold text-foreground">{total.toLocaleString('en-IN')}</span> entr{total === 1 ? 'y' : 'ies'}
+          </span>
+        }
+        flush
+      >
+        {loading ? (
+          <Spinner label="Loading audit logs…" />
+        ) : logs.length === 0 ? (
+          <EmptyState icon={ScrollText} title="No audit entries match these filters." />
+        ) : (
+          <>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-sm">
-                <thead className="bg-background">
+                <thead className={TABLE_HEAD}>
                   <tr className="border-b border-tertiary-button">
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">When</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Who</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                    <th className={TH}>When</th>
+                    <th className={TH}>Who</th>
+                    <th className={TH}>Action</th>
+                    <th className={TH}>Target</th>
+                    <th className={TH}>Section</th>
+                    <th className={TH}>Result</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tertiary-button">
+                <tbody className={TBODY}>
                   {logs.map((log) => {
                     const denied = log.action === 'ACCESS_DENIED';
                     const expanded = expandedId === log.id;
@@ -231,92 +250,73 @@ export default function AuditLogs() {
                       <tr
                         key={log.id}
                         onClick={() => setExpandedId(expanded ? null : log.id)}
-                        className={`cursor-pointer transition-colors ${
-                          denied
-                            ? 'bg-red-50 border-l-2 border-l-danger hover:bg-red-100'
-                            : 'hover:bg-background'
+                        className={`cursor-pointer ${
+                          denied ? 'border-l-2 border-l-danger bg-danger/10 transition-colors hover:bg-danger/15' : TROW
                         }`}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-gray-700">
-                            {new Date(log.createdAt).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {relativeTime(log.createdAt)}
-                          </div>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <div className="font-semibold text-foreground">{new Date(log.createdAt).toLocaleString()}</div>
+                          <div className="mt-0.5 text-xs text-inactive">{relativeTime(log.createdAt)}</div>
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           <div className="text-foreground">{log.actorEmail}</div>
-                          <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-[11px] font-medium border bg-gray-100 text-gray-600 border-gray-300">
-                            {log.actorRole}
-                          </span>
+                          <div className="mt-1">
+                            <Badge tone="slate">{log.actorRole}</Badge>
+                          </div>
                         </td>
 
-                        <td className="px-4 py-3">
-                          <span
-                            className={`font-medium ${denied ? 'text-red-700' : 'text-gray-700'}`}
-                          >
-                            {log.action}
-                          </span>
+                        <td className="px-5 py-3.5">
+                          <span className={`font-bold ${denied ? 'text-danger' : 'text-foreground'}`}>{log.action}</span>
                         </td>
 
-                        <td className="px-4 py-3">
-                          <div className="text-gray-700">{log.entityType}</div>
+                        <td className="px-5 py-3.5">
+                          <div className="text-foreground">{log.entityType}</div>
                           {log.entityId ? (
-                            <div
-                              className="text-xs text-gray-400 font-mono mt-0.5"
-                              title={log.entityId}
-                            >
+                            <div className="mt-0.5 font-mono text-xs text-inactive" title={log.entityId}>
                               {truncate(log.entityId)}
                             </div>
                           ) : null}
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           {log.page ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-50 text-links border-blue-200 whitespace-nowrap">
-                              {PAGE_LABELS[log.page] ?? log.page}
-                            </span>
+                            <Badge tone="blue">{PAGE_LABELS[log.page] ?? log.page}</Badge>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-inactive">-</span>
                           )}
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium border bg-gray-100 text-gray-600 border-gray-300">
+                            <span className="inline-flex items-center rounded-full bg-background px-2 py-0.5 font-mono text-[11px] font-bold text-inactive ring-1 ring-tertiary-button">
                               {log.method}
                             </span>
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusColor(log.statusCode)}`}
-                            >
-                              {log.statusCode}
-                            </span>
+                            <Badge tone={statusTone(log.statusCode)}>{log.statusCode}</Badge>
                           </div>
                         </td>
                       </tr>,
 
                       expanded ? (
-                        <tr key={`${log.id}-details`} className={denied ? 'bg-red-50' : 'bg-peace'}>
-                          <td colSpan={6} className="px-4 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <tr key={`${log.id}-details`} className={denied ? 'bg-danger/10' : 'bg-background/60'}>
+                          <td colSpan={6} className="px-5 py-4">
+                            <div className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-3">
                               <div>
-                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Path</div>
-                                <div className="text-xs text-gray-700 font-mono break-all">{log.path}</div>
+                                <div className={`mb-1 ${LABEL}`}>Path</div>
+                                <div className="font-mono text-xs break-all text-foreground">{log.path}</div>
                               </div>
                               <div>
-                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">IP Address</div>
-                                <div className="text-xs text-gray-700 font-mono">{log.ipAddress ?? '-'}</div>
+                                <div className={`mb-1 ${LABEL}`}>IP Address</div>
+                                <div className="font-mono text-xs text-foreground">{log.ipAddress ?? '-'}</div>
                               </div>
                               <div>
-                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">User Agent</div>
-                                <div className="text-xs text-gray-700 break-all">{log.userAgent ?? '-'}</div>
+                                <div className={`mb-1 ${LABEL}`}>User Agent</div>
+                                <div className="text-xs break-all text-foreground">{log.userAgent ?? '-'}</div>
                               </div>
                             </div>
 
-                            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Metadata</div>
-                            <pre className="bg-background border border-tertiary-button rounded-lg p-3 text-xs text-gray-700 font-mono overflow-x-auto">
+                            <div className={`mb-1 ${LABEL}`}>Metadata</div>
+                            <pre className="overflow-x-auto rounded-xl border border-tertiary-button bg-peace p-3 font-mono text-xs text-foreground">
                               {log.metadata ? JSON.stringify(log.metadata, null, 2) : '-'}
                             </pre>
                           </td>
@@ -327,32 +327,16 @@ export default function AuditLogs() {
                 </tbody>
               </table>
             </div>
-          </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-xs text-gray-500">
-              Page {pageNum} of {totalPages} ({total} total)
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPageNum((p) => Math.max(1, p - 1))}
-                disabled={pageNum <= 1}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-gray-600 rounded-lg transition-colors"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPageNum((p) => Math.min(totalPages, p + 1))}
-                disabled={pageNum >= totalPages}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-gray-600 rounded-lg transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+            <Pagination
+              page={pageNum}
+              totalPages={totalPages}
+              total={total}
+              onPage={(p) => setPageNum(Math.min(totalPages, Math.max(1, p)))}
+            />
+          </>
+        )}
+      </Panel>
     </div>
   );
 }

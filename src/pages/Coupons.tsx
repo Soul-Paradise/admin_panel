@@ -1,12 +1,31 @@
 import { useEffect, useState, useCallback } from 'react';
+import { CheckCircle2, Plus, Repeat, TicketPercent } from 'lucide-react';
 import {
   api,
   type PromoCode,
   type CreatePromoCodeInput,
+  type UpdatePromoCodeInput,
   type CommissionType,
   type ServiceType,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner } from '../components/ui';
+import {
+  BTN_GHOST,
+  BTN_PRIMARY,
+  FIELD_LABEL,
+  INPUT,
+  LINK_BTN,
+  LINK_BTN_DANGER,
+  PAGE,
+  SELECT,
+  TABLE_HEAD,
+  TBODY,
+  TH,
+  TROW,
+  TONES,
+  type Tone,
+} from '../lib/ui-styles';
 
 const DISCOUNT_TYPES: CommissionType[] = ['PERCENTAGE', 'FIXED'];
 
@@ -19,14 +38,12 @@ const SERVICE_LABELS: Record<ServiceType, string> = {
   INSURANCE: 'Insurance',
 };
 
-const serviceBadgeColors: Record<ServiceType, string> = {
-  FLIGHT: 'bg-blue-50 text-links border-blue-200',
-  HOTEL: 'bg-amber-50 text-amber-700 border-amber-200',
-  TRAVEL_PLAN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  INSURANCE: 'bg-purple-50 text-purple-700 border-purple-200',
+const serviceTone: Record<ServiceType, Tone> = {
+  FLIGHT: 'blue',
+  HOTEL: 'amber',
+  TRAVEL_PLAN: 'green',
+  INSURANCE: 'purple',
 };
-
-const ALL_SERVICES_BADGE = 'bg-gray-100 text-gray-600 border-gray-300';
 
 const EMPTY_FORM = {
   code: '',
@@ -60,6 +77,16 @@ function toNullableNumber(raw: string): number | null {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** The backend rejects code changes outright, so it never leaves the client. */
+function withoutCode({ code, ...updates }: CreatePromoCodeInput): UpdatePromoCodeInput {
+  void code;
+  return updates;
+}
+
+function errorText(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 export default function Coupons() {
@@ -168,9 +195,7 @@ export default function Coupons() {
       };
 
       if (editingId) {
-        // The backend rejects code changes outright, so it never leaves the client.
-        const { code: _code, ...updates } = payload;
-        await api.updatePromoCode(editingId, updates);
+        await api.updatePromoCode(editingId, withoutCode(payload));
         setMessage({ type: 'success', text: 'Coupon updated' });
       } else {
         await api.createPromoCode(payload);
@@ -178,8 +203,8 @@ export default function Coupons() {
       }
       closeForm();
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to save coupon' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to save coupon') });
     } finally {
       setSaving(false);
     }
@@ -191,8 +216,8 @@ export default function Coupons() {
       await api.deletePromoCode(coupon.id);
       setMessage({ type: 'success', text: 'Coupon deleted' });
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to delete coupon' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to delete coupon') });
     }
   }
 
@@ -200,80 +225,76 @@ export default function Coupons() {
     try {
       await api.updatePromoCode(coupon.id, { isActive: !coupon.isActive });
       load();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to update coupon' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to update coupon') });
     }
   }
 
   const isPercentage = form.discountType === 'PERCENTAGE';
+  const suffix = 'pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-inactive';
+  const hint = 'mt-1 text-[11px] text-inactive';
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Coupons</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage promo codes and discounts</p>
-          {!editable && (
-            <p className="text-xs text-gray-400 mt-1">You have read-only access to Coupons.</p>
-          )}
-        </div>
-        {editable && (
-          <button
-            onClick={openCreate}
-            className="px-4 py-2 bg-primary-button hover:bg-secondary-button text-peace text-sm font-medium rounded-lg transition-colors"
-          >
-            + New Coupon
-          </button>
-        )}
-      </div>
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Promotions"
+        title="Coupons"
+        subtitle="Manage promo codes and discounts"
+        note={!editable ? 'You have read-only access to Coupons.' : undefined}
+        actions={
+          editable && (
+            <button onClick={openCreate} className={BTN_PRIMARY}>
+              <Plus className="h-4 w-4" /> New Coupon
+            </button>
+          )
+        }
+        stats={
+          <>
+            <HeroStat icon={TicketPercent} label="Total coupons" value={loading ? null : coupons.length} />
+            <HeroStat icon={CheckCircle2} label="Active" value={loading ? null : coupons.filter((c) => c.isActive).length} />
+            <HeroStat
+              icon={Repeat}
+              label="Total redemptions"
+              value={loading ? null : coupons.reduce((sum, c) => sum + c.usageCount, 0).toLocaleString('en-IN')}
+            />
+          </>
+        }
+      />
 
-      {/* Message */}
       {message && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.text}
+        <div className="mb-4">
+          <Alert tone={message.type}>{message.text}</Alert>
         </div>
       )}
 
       {/* Form */}
       {editable && showForm && (
-        <div className="mb-6 bg-peace border border-tertiary-button rounded-xl shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">
-            {editingId ? 'Edit Coupon' : 'New Coupon'}
-          </h2>
+        <Panel title={editingId ? 'Edit Coupon' : 'New Coupon'} className="animate-fade-up mb-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Code */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Code</label>
+              <label className={FIELD_LABEL}>Code</label>
               <input
                 type="text"
                 value={form.code}
                 disabled={!!editingId}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground font-mono tracking-wider placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-500"
+                className={`${INPUT} font-mono tracking-wider disabled:text-inactive`}
                 placeholder="e.g. SOUL1500"
               />
-              {editingId && (
-                <p className="text-[11px] text-gray-400 mt-1">Code cannot be changed after creation.</p>
-              )}
+              {editingId && <p className={hint}>Code cannot be changed after creation.</p>}
             </div>
 
             {/* Service Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Service (optional)</label>
+              <label className={FIELD_LABEL}>Service (optional)</label>
               <select
                 value={form.serviceType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, serviceType: e.target.value as ServiceType | '' }))
                 }
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={SELECT}
               >
                 <option value="">All services</option>
                 {SERVICE_TYPES.map((s) => (
@@ -284,25 +305,25 @@ export default function Coupons() {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
+              <label className={FIELD_LABEL}>Description (optional)</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 rows={2}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
+                className={`${INPUT} resize-none`}
                 placeholder="e.g. 20% off on international flight bookings"
               />
             </div>
 
             {/* Discount Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Discount Type</label>
+              <label className={FIELD_LABEL}>Discount Type</label>
               <select
                 value={form.discountType}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, discountType: e.target.value as CommissionType }))
                 }
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={SELECT}
               >
                 {DISCOUNT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -314,7 +335,7 @@ export default function Coupons() {
 
             {/* Discount Value */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Discount Value</label>
+              <label className={FIELD_LABEL}>Discount Value</label>
               <div className="relative">
                 <input
                   type="number"
@@ -323,18 +344,16 @@ export default function Coupons() {
                   step="any"
                   value={form.discountValue}
                   onChange={(e) => setForm((f) => ({ ...f, discountValue: e.target.value }))}
-                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  className={`${INPUT} pr-9`}
                   placeholder={isPercentage ? '20' : '500'}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
-                  {isPercentage ? '%' : '₹'}
-                </span>
+                <span className={suffix}>{isPercentage ? '%' : '₹'}</span>
               </div>
             </div>
 
             {/* Min Order Amount */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Min Order Amount (optional)</label>
+              <label className={FIELD_LABEL}>Min Order Amount (optional)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -342,18 +361,16 @@ export default function Coupons() {
                   step="any"
                   value={form.minOrderAmount}
                   onChange={(e) => setForm((f) => ({ ...f, minOrderAmount: e.target.value }))}
-                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  className={`${INPUT} pr-9`}
                   placeholder="No minimum"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
-                  ₹
-                </span>
+                <span className={suffix}>₹</span>
               </div>
             </div>
 
             {/* Max Discount */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Max Discount (optional)</label>
+              <label className={FIELD_LABEL}>Max Discount (optional)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -362,112 +379,121 @@ export default function Coupons() {
                   disabled={!isPercentage}
                   value={isPercentage ? form.maxDiscount : ''}
                   onChange={(e) => setForm((f) => ({ ...f, maxDiscount: e.target.value }))}
-                  className="w-full bg-peace border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className={`${INPUT} pr-9 disabled:opacity-50`}
                   placeholder="No cap"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
-                  ₹
-                </span>
+                <span className={suffix}>₹</span>
               </div>
-              {!isPercentage && (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Only applies to percentage discounts.
-                </p>
-              )}
+              {!isPercentage && <p className={hint}>Only applies to percentage discounts.</p>}
             </div>
 
             {/* Usage Limit */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Usage Limit (optional)</label>
+              <label className={FIELD_LABEL}>Usage Limit (optional)</label>
               <input
                 type="number"
                 min={1}
                 step={1}
                 value={form.usageLimit}
                 onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                className={INPUT}
                 placeholder="Unlimited"
               />
-              <p className="text-[11px] text-gray-400 mt-1">Leave blank for unlimited redemptions.</p>
+              <p className={hint}>Leave blank for unlimited redemptions.</p>
             </div>
 
             {/* Is Active */}
-            <div className="flex items-center gap-3 pt-5">
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex items-center gap-3 pt-7">
+              <label className="relative inline-flex cursor-pointer items-center">
                 <input
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                  className="sr-only peer"
+                  className="peer sr-only"
                 />
-                <div className="w-10 h-5 bg-tertiary-button peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
+                <div className="peer h-6 w-11 rounded-full bg-tertiary-button transition-colors after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-peace after:shadow-sm after:transition-all after:content-[''] peer-checked:bg-primary-button peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-links/30"></div>
               </label>
-              <span className="text-sm text-gray-700">Active</span>
+              <span className="text-sm font-semibold text-foreground">Active</span>
             </div>
 
             {/* Valid From */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Valid From (optional)</label>
+              <label className={FIELD_LABEL}>Valid From (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validFrom}
                 onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={INPUT}
               />
             </div>
 
             {/* Valid Until */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Valid Until (optional)</label>
+              <label className={FIELD_LABEL}>Valid Until (optional)</label>
               <input
                 type="datetime-local"
                 value={form.validUntil}
                 onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
-                className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+                className={INPUT}
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4 pt-4 border-t border-tertiary-button">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 bg-primary-button hover:bg-secondary-button disabled:opacity-50 text-peace text-sm font-medium rounded-lg transition-colors"
-            >
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-tertiary-button pt-4">
+            <button onClick={handleSave} disabled={saving} className={BTN_PRIMARY}>
               {saving ? 'Saving...' : editingId ? 'Update Coupon' : 'Create Coupon'}
             </button>
-            <button
-              onClick={closeForm}
-              className="px-4 py-2 bg-background hover:bg-tertiary-button text-gray-700 text-sm font-medium rounded-lg transition-colors"
-            >
+            <button onClick={closeForm} className={BTN_GHOST}>
               Cancel
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Coupons Table */}
       {loading ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
+        <Panel title="All coupons" flush>
+          <Spinner label="Loading coupons…" />
+        </Panel>
       ) : coupons.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No coupons yet. Create one to start offering discounts.</p>
-        </div>
+        <Panel title="All coupons" flush>
+          <EmptyState
+            icon={TicketPercent}
+            title="No coupons yet"
+            message="No coupons yet. Create one to start offering discounts."
+            action={
+              editable && (
+                <button onClick={openCreate} className={BTN_PRIMARY}>
+                  <Plus className="h-4 w-4" /> New Coupon
+                </button>
+              )
+            }
+          />
+        </Panel>
       ) : (
-        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-x-auto">
+        <Panel
+          title="All coupons"
+          aside={
+            <span className="text-sm font-semibold text-inactive">
+              {coupons.length} coupon{coupons.length === 1 ? '' : 's'}
+            </span>
+          }
+          flush
+        >
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
-            <thead className="bg-background">
+            <thead className={TABLE_HEAD}>
               <tr className="border-b border-tertiary-button">
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Validity</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3" />
+                <th className={TH}>Code</th>
+                <th className={TH}>Discount</th>
+                <th className={TH}>Service</th>
+                <th className={TH}>Usage</th>
+                <th className={TH}>Validity</th>
+                <th className={TH}>Status</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-tertiary-button">
+            <tbody className={TBODY}>
               {coupons.map((coupon) => {
                 const redeemed = coupon.usageCount > 0;
                 const usagePercent =
@@ -477,49 +503,41 @@ export default function Coupons() {
                 const exhausted = coupon.usageLimit !== null && coupon.usageCount >= coupon.usageLimit;
 
                 return (
-                  <tr key={coupon.id} className="hover:bg-background transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-mono font-bold text-foreground tracking-wide">{coupon.code}</div>
+                  <tr key={coupon.id} className={TROW}>
+                    <td className="px-5 py-3.5">
+                      <div className="font-mono font-bold tracking-wide text-foreground">{coupon.code}</div>
                       {coupon.description && (
-                        <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{coupon.description}</div>
+                        <div className="mt-0.5 line-clamp-1 text-xs text-inactive">{coupon.description}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="text-foreground font-medium">{formatDiscount(coupon)}</div>
+                    <td className="px-5 py-3.5">
+                      <div className="font-bold text-foreground">{formatDiscount(coupon)}</div>
                       {coupon.maxDiscount !== null && (
-                        <div className="text-[11px] text-gray-500 mt-0.5">max {inr(coupon.maxDiscount)}</div>
+                        <div className="mt-0.5 text-[11px] text-inactive">max {inr(coupon.maxDiscount)}</div>
                       )}
                       {coupon.minOrderAmount !== null && (
-                        <div className="text-[11px] text-gray-500">min order {inr(coupon.minOrderAmount)}</div>
+                        <div className="text-[11px] text-inactive">min order {inr(coupon.minOrderAmount)}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                          coupon.serviceType
-                            ? serviceBadgeColors[coupon.serviceType]
-                            : ALL_SERVICES_BADGE
-                        }`}
-                      >
+                    <td className="px-5 py-3.5">
+                      <Badge tone={coupon.serviceType ? serviceTone[coupon.serviceType] : 'slate'}>
                         {coupon.serviceType ? SERVICE_LABELS[coupon.serviceType] : 'All'}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-4 py-3 min-w-[7rem]">
-                      <div className="text-gray-600 text-xs">
+                    <td className="min-w-[7rem] px-5 py-3.5">
+                      <div className="text-xs font-semibold text-inactive">
                         {coupon.usageCount} / {coupon.usageLimit ?? '∞'}
                       </div>
                       {coupon.usageLimit !== null && (
-                        <div className="mt-1.5 h-1 w-20 bg-tertiary-button rounded-full overflow-hidden">
+                        <div className="mt-1.5 h-1.5 w-20 overflow-hidden rounded-full bg-tertiary-button">
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              exhausted ? 'bg-red-500' : 'bg-links'
-                            }`}
+                            className={`h-full rounded-full transition-all ${exhausted ? 'bg-danger' : 'bg-links'}`}
                             style={{ width: `${usagePercent}%` }}
                           />
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">
+                    <td className="px-5 py-3.5 text-xs text-inactive">
                       {coupon.validFrom || coupon.validUntil ? (
                         <span>
                           {coupon.validFrom ? new Date(coupon.validFrom).toLocaleDateString() : '-'}
@@ -527,40 +545,31 @@ export default function Coupons() {
                           {coupon.validUntil ? new Date(coupon.validUntil).toLocaleDateString() : '∞'}
                         </span>
                       ) : (
-                        <span className="text-gray-400">Always</span>
+                        <span>Always</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       {editable ? (
                         <button
                           onClick={() => handleToggleActive(coupon)}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border cursor-pointer transition-colors ${
-                            coupon.isActive
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
+                          title="Click to toggle"
+                          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-opacity hover:opacity-80 ${
+                            TONES[coupon.isActive ? 'green' : 'slate']
                           }`}
                         >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
                           {coupon.isActive ? 'Active' : 'Inactive'}
                         </button>
                       ) : (
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                            coupon.isActive
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-gray-100 text-gray-600 border-gray-300'
-                          }`}
-                        >
+                        <Badge tone={coupon.isActive ? 'green' : 'slate'} dot>
                           {coupon.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       {editable && (
-                        <div className="flex items-center gap-2 justify-end">
-                          <button
-                            onClick={() => openEdit(coupon)}
-                            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button rounded-lg transition-colors"
-                          >
+                        <div className="flex items-center justify-end gap-3">
+                          <button onClick={() => openEdit(coupon)} className={LINK_BTN}>
                             Edit
                           </button>
                           {redeemed ? (
@@ -569,15 +578,12 @@ export default function Coupons() {
                             <button
                               disabled
                               title="Redeemed coupons can't be deleted - deactivate instead"
-                              className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-background rounded-lg cursor-not-allowed"
+                              className={`${LINK_BTN_DANGER} cursor-not-allowed`}
                             >
                               Delete
                             </button>
                           ) : (
-                            <button
-                              onClick={() => handleDelete(coupon)}
-                              className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                            >
+                            <button onClick={() => handleDelete(coupon)} className={LINK_BTN_DANGER}>
                               Delete
                             </button>
                           )}
@@ -590,6 +596,7 @@ export default function Coupons() {
             </tbody>
           </table>
         </div>
+        </Panel>
       )}
     </div>
   );

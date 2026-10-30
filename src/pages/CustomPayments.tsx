@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { CircleCheck, CircleX, Clock, CreditCard, Receipt, RefreshCw, Search, type LucideIcon } from 'lucide-react';
 import {
   api,
   type AdminCustomPayment,
@@ -7,6 +7,18 @@ import {
   type PaymentStatus,
   type PaymentStatusGroup,
 } from '../lib/api';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner, StatTile } from '../components/ui';
+import {
+  FIELD_LABEL,
+  INPUT,
+  PAGE,
+  TABLE_HEAD,
+  TBODY,
+  TH,
+  TROW,
+  type Accent,
+  type Tone,
+} from '../lib/ui-styles';
 
 const LIMIT = 25;
 
@@ -19,22 +31,22 @@ const ABANDONED_AFTER_MS = 30 * 60 * 1000;
 
 type Filter = PaymentStatusGroup | 'all';
 
-const TILES: { key: Filter; label: string; accent: string }[] = [
-  { key: 'all', label: 'All payments', accent: 'bg-links' },
-  { key: 'received', label: 'Received', accent: 'bg-success' },
-  { key: 'pending', label: 'Pending', accent: 'bg-amber-500' },
-  { key: 'failed', label: 'Failed / cancelled', accent: 'bg-danger' },
+const TILES: { key: Filter; label: string; icon: LucideIcon; accent: Accent }[] = [
+  { key: 'all', label: 'All payments', icon: Receipt, accent: 'blue' },
+  { key: 'received', label: 'Received', icon: CircleCheck, accent: 'green' },
+  { key: 'pending', label: 'Pending', icon: Clock, accent: 'orange' },
+  { key: 'failed', label: 'Failed / cancelled', icon: CircleX, accent: 'pink' },
 ];
 
-const STATUS_BADGE: Record<PaymentStatus, { label: string; cls: string }> = {
-  PAID: { label: 'Received', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  INITIATED: { label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  REDIRECTED: { label: 'Pending', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  FAILED: { label: 'Failed', cls: 'bg-red-50 text-red-700 border-red-200' },
-  CANCELLED: { label: 'Cancelled', cls: 'bg-gray-100 text-gray-600 border-gray-300' },
-  EXPIRED: { label: 'Expired', cls: 'bg-gray-100 text-gray-600 border-gray-300' },
-  REFUND_PENDING: { label: 'Refund pending', cls: 'bg-blue-50 text-links border-blue-200' },
-  REFUNDED: { label: 'Refunded', cls: 'bg-blue-50 text-links border-blue-200' },
+const STATUS_BADGE: Record<PaymentStatus, { label: string; tone: Tone }> = {
+  PAID: { label: 'Received', tone: 'green' },
+  INITIATED: { label: 'Pending', tone: 'amber' },
+  REDIRECTED: { label: 'Pending', tone: 'amber' },
+  FAILED: { label: 'Failed', tone: 'red' },
+  CANCELLED: { label: 'Cancelled', tone: 'slate' },
+  EXPIRED: { label: 'Expired', tone: 'slate' },
+  REFUND_PENDING: { label: 'Refund pending', tone: 'blue' },
+  REFUNDED: { label: 'Refunded', tone: 'blue' },
 };
 
 const inr = new Intl.NumberFormat('en-IN', {
@@ -65,16 +77,13 @@ function StatusBadge({ payment, now }: { payment: AdminCustomPayment; now: numbe
   const abandoned =
     isPending(payment.status) &&
     now - new Date(payment.createdAt).getTime() > ABANDONED_AFTER_MS;
-  const badge = abandoned
-    ? { label: 'Not completed', cls: 'bg-gray-100 text-gray-600 border-gray-300' }
-    : STATUS_BADGE[payment.status];
+  const badge = abandoned ? { label: 'Not completed', tone: 'slate' as Tone } : STATUS_BADGE[payment.status];
 
   return (
-    <span
-      title={abandoned ? 'No answer from the bank for over 30 minutes - the customer most likely left the payment page.' : undefined}
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border whitespace-nowrap ${badge.cls}`}
-    >
-      {badge.label}
+    <span title={abandoned ? 'No answer from the bank for over 30 minutes - the customer most likely left the payment page.' : undefined}>
+      <Badge tone={badge.tone} dot>
+        {badge.label}
+      </Badge>
     </span>
   );
 }
@@ -140,79 +149,74 @@ export default function CustomPayments() {
   const totalPages = Math.max(1, data?.pagination.totalPages ?? 1);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Custom Payments</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Payments customers made from the website&apos;s Custom Payment tab
-          </p>
-        </div>
-        <button
-          onClick={() => load()}
-          disabled={loading}
-          className="inline-flex shrink-0 items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-foreground bg-peace border border-tertiary-button hover:bg-tertiary-button disabled:opacity-50 rounded-lg transition-colors"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Payments"
+        title="Custom Payments"
+        subtitle={<>Payments customers made from the website&apos;s Custom Payment tab</>}
+        actions={
+          <button
+            onClick={() => load()}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20 disabled:opacity-60"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        }
+        stats={
+          <>
+            <HeroStat icon={CircleCheck} label="Received" value={data ? formatAmount(data.summary.received.amount) : null} />
+            <HeroStat icon={Clock} label="Pending" value={data ? data.summary.pending.count.toLocaleString('en-IN') : null} />
+            <HeroStat icon={Receipt} label="All payments" value={data ? data.summary.all.count.toLocaleString('en-IN') : null} />
+          </>
+        }
+      />
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-200">
-          {error}
+        <div className="mb-4">
+          <Alert tone="error">{error}</Alert>
         </div>
       )}
 
       {/* Summary tiles - double as the status filter */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 mb-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {TILES.map((tile) => {
-          const active = filter === tile.key;
           const stats = data?.summary[tile.key];
           const amount = tile.key === 'all' ? null : data?.summary[tile.key].amount;
           return (
-            <button
+            <StatTile
               key={tile.key}
+              label={tile.label}
+              value={stats ? stats.count.toLocaleString('en-IN') : '–'}
+              sub={amount !== null ? (amount !== undefined ? formatAmount(amount) : '–') : undefined}
+              icon={tile.icon}
+              accent={tile.accent}
+              active={filter === tile.key}
               onClick={() => selectFilter(tile.key)}
-              className={`rounded-xl border bg-peace p-4 text-left shadow-sm transition-colors sm:p-5 ${
-                active
-                  ? 'border-secondary-button ring-1 ring-secondary-button'
-                  : 'border-tertiary-button hover:border-secondary-button'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${tile.accent}`} aria-hidden="true" />
-                <p className="truncate text-xs font-semibold text-inactive sm:text-sm">{tile.label}</p>
-              </div>
-              <p className="mt-2 text-2xl font-bold tabular-nums text-foreground sm:text-3xl">
-                {stats ? stats.count.toLocaleString('en-IN') : '–'}
-              </p>
-              {amount !== null && (
-                <p className="mt-0.5 text-xs font-medium tabular-nums text-gray-500">
-                  {amount !== undefined ? formatAmount(amount) : '–'}
-                </p>
-              )}
-            </button>
+            />
           );
         })}
       </div>
 
       {/* Filters */}
-      <div className="mb-4 bg-peace border border-tertiary-button rounded-xl shadow-sm p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <Panel title="Filters" className="mb-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Customer name, email or reference"
-              className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-blue-500"
-            />
+            <label className={FIELD_LABEL}>Search</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-inactive" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Customer name, email or reference"
+                className={`${INPUT} pl-10`}
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+            <label className={FIELD_LABEL}>From</label>
             <input
               type="date"
               value={from}
@@ -220,11 +224,11 @@ export default function CustomPayments() {
                 setFrom(e.target.value);
                 setPageNum(1);
               }}
-              className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className={INPUT}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+            <label className={FIELD_LABEL}>To</label>
             <input
               type="date"
               value={to}
@@ -232,103 +236,85 @@ export default function CustomPayments() {
                 setTo(e.target.value);
                 setPageNum(1);
               }}
-              className="w-full bg-peace border border-gray-300 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className={INPUT}
             />
           </div>
         </div>
-      </div>
+      </Panel>
 
       {/* Table */}
+      <Panel
+        title="Payments"
+        aside={data ? <Badge tone="blue">{data.pagination.total.toLocaleString('en-IN')}</Badge> : undefined}
+        flush
+      >
       {loading && !data ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
+        <Spinner label="Loading payments…" />
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No payments match these filters.</p>
-        </div>
+        <EmptyState icon={CreditCard} title="No payments found" message="No payments match these filters." />
       ) : (
         <>
-          <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-background">
-                  <tr className="border-b border-tertiary-button">
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Initiated</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y divide-tertiary-button ${loading ? 'opacity-60' : ''}`}>
-                  {items.map((p) => {
-                    const outcome = outcomeTime(p);
-                    return (
-                      <tr key={p.id} className="hover:bg-background transition-colors align-top">
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-700">
-                          {formatDateTime(p.createdAt)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-foreground font-medium">{p.customerName ?? '-'}</div>
-                          <div className="text-xs text-gray-500">{p.customerEmail ?? '-'}</div>
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground whitespace-nowrap">
-                          {formatAmount(p.amount)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge payment={p} now={loadedAt} />
-                          {outcome && (
-                            <div className="text-[11px] text-gray-400 mt-1 whitespace-nowrap">
-                              {formatDateTime(outcome)}
-                            </div>
-                          )}
-                          {p.status !== 'PAID' && p.respDescription && (
-                            <div className="text-[11px] text-gray-500 mt-1 max-w-[220px]" title={p.respDescription}>
-                              {p.respDescription}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{p.paymentMode ?? '-'}</td>
-                        <td className="px-4 py-3">
-                          <div className="font-mono text-xs text-gray-700">{p.merchantTxnNo}</div>
-                          {p.txnId && (
-                            <div className="font-mono text-[11px] text-gray-400 mt-0.5" title="Bank transaction ID">
-                              Bank: {p.txnId}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className={TABLE_HEAD}>
+                <tr className="border-b border-tertiary-button">
+                  <th className={TH}>Initiated</th>
+                  <th className={TH}>Customer</th>
+                  <th className={`${TH} !text-right`}>Amount</th>
+                  <th className={TH}>Status</th>
+                  <th className={TH}>Method</th>
+                  <th className={TH}>Reference</th>
+                </tr>
+              </thead>
+              <tbody className={`${TBODY} ${loading ? 'opacity-60' : ''}`}>
+                {items.map((p) => {
+                  const outcome = outcomeTime(p);
+                  return (
+                    <tr key={p.id} className={`align-top ${TROW}`}>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-foreground">{formatDateTime(p.createdAt)}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-foreground">{p.customerName ?? '-'}</div>
+                        <div className="text-xs text-inactive">{p.customerEmail ?? '-'}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-extrabold whitespace-nowrap text-foreground tabular-nums">
+                        {formatAmount(p.amount)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <StatusBadge payment={p} now={loadedAt} />
+                        {outcome && (
+                          <div className="mt-1 text-[11px] whitespace-nowrap text-inactive">{formatDateTime(outcome)}</div>
+                        )}
+                        {p.status !== 'PAID' && p.respDescription && (
+                          <div className="mt-1 max-w-[220px] text-[11px] text-inactive" title={p.respDescription}>
+                            {p.respDescription}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-foreground">{p.paymentMode ?? '-'}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-mono text-xs text-foreground">{p.merchantTxnNo}</div>
+                        {p.txnId && (
+                          <div className="mt-0.5 font-mono text-[11px] text-inactive" title="Bank transaction ID">
+                            Bank: {p.txnId}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-xs text-gray-500">
-              Page {pageNum} of {totalPages} ({data?.pagination.total ?? 0} total)
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPageNum((p) => Math.max(1, p - 1))}
-                disabled={pageNum <= 1}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-gray-600 rounded-lg transition-colors"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPageNum((p) => Math.min(totalPages, p + 1))}
-                disabled={pageNum >= totalPages}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-gray-600 rounded-lg transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={pageNum}
+            totalPages={totalPages}
+            total={data?.pagination.total ?? 0}
+            onPage={(p) => setPageNum(Math.min(totalPages, Math.max(1, p)))}
+          />
         </>
       )}
+      </Panel>
     </div>
   );
 }

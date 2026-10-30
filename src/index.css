@@ -8,19 +8,35 @@
  * there, change it here too.
  */
 @theme inline {
-  --color-background: #F9FAFC;
-  --color-foreground: #313647;
-  --color-primary-button: #313647;
-  --color-secondary-button: #435663;
-  --color-tertiary-button: #dce3e8;
-  --color-danger: #D34E4E;
-  --color-success: #84994F;
-  --color-warn: #CE7E5A;
+  /* Neutrals */
+  --color-background: #F6F8FB;
   --color-peace: #FFFFFF;
+  --color-tertiary-button: #E2E8F0; /* borders, dividers */
+  --color-foreground: #0E2238;
+  --color-inactive: #5B6B7F;
   --color-death: #000000;
-  --color-active: #313647;
-  --color-inactive: #41474a;
-  --color-links: #1F7AC4;
+
+  /* Brand blue */
+  --color-primary-button: #1D5FD1;
+  --color-secondary-button: #164BA6; /* primary hover / pressed */
+  --color-links: #1D5FD1;
+  --color-active: #1D5FD1;
+  --color-primary-tint: #EAF1FD;
+
+  /* Sunset orange - primary booking actions only */
+  --color-accent-light: #F7931E;
+  --color-accent: #EF5A24;
+  --color-accent-hover: #D94A17;
+
+  /* Navy ink - footer, dark bands */
+  --color-ink: #0E2238;
+  --color-ink-soft: #17324F;
+
+  /* Status */
+  --color-success: #16A36A;
+  --color-warn: #F59E0B;
+  --color-danger: #E5484D;
+
   --font-nunito: 'Nunito', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     Roboto, sans-serif;
 }
@@ -73,5 +89,38 @@
 
   *::-webkit-scrollbar-track {
     background: transparent;
+  }
+}
+
+/* Same keyboard focus ring and selection colour as the customer site. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-links);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-primary-tint);
+  color: var(--color-foreground);
+}
+
+/* Page content rises in on load, like the site's heroes. */
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
   }
 }

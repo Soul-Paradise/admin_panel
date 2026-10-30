@@ -18,7 +18,8 @@ export type AdminPage =
   | 'USER_ACCESS'
   | 'AUDIT_LOGS'
   | 'CUSTOM_PAYMENTS'
-  | 'POLICIES';
+  | 'POLICIES'
+  | 'SITE_CONTENT';
 
 export type AccessLevel = 'READ' | 'WRITE';
 
@@ -54,11 +55,14 @@ export interface AdminAccessResponse {
  */
 export class ApiError extends Error {
   statusCode: number;
+  /** Parsed error body, for extra fields such as 409 `usedIn` / `currentVersion`. */
+  data: unknown;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, data: unknown = null) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
+    this.data = data;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
@@ -563,10 +567,12 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    // FormData bodies (uploads) must let the browser set the multipart boundary.
+    const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const config: RequestInit = {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isForm ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     };
@@ -584,7 +590,7 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      throw new ApiError(readErrorMessage(data, response.status), response.status);
+      throw new ApiError(readErrorMessage(data, response.status), response.status, data);
     }
 
     return data as T;
@@ -1017,6 +1023,221 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ------------------------------------------------------------ Site content
+
+  async getSiteOverview(): Promise<SitePageOverview[]> {
+    return this.authenticatedRequest<SitePageOverview[]>('/admin/site-content');
+  }
+
+  async getSitePage(page: SitePage): Promise<SiteSection[]> {
+    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${page}`);
+  }
+
+  async reorderSitePage(page: SitePage, keys: string[]): Promise<SiteSection[]> {
+    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${page}/order`, {
+      method: 'PUT',
+      body: JSON.stringify({ keys }),
+    });
+  }
+
+  async getSiteSection(page: SitePage, key: string): Promise<SiteSection> {
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}`);
+  }
+
+  /** 409 (ApiError.statusCode) means someone else saved since `input.version`. */
+  async updateSiteSection(
+    page: SitePage,
+    key: string,
+    input: { content?: unknown; isVisible?: boolean; version: number },
+  ): Promise<SiteSection> {
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getSiteSectionRevisions(page: SitePage, key: string): Promise<SiteSectionRevision[]> {
+    return this.authenticatedRequest<SiteSectionRevision[]>(
+      `/admin/site-content/${page}/${encodeURIComponent(key)}/revisions`,
+    );
+  }
+
+  async restoreSiteSection(page: SitePage, key: string, revision: number, version: number): Promise<SiteSection> {
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ revision, version }),
+    });
+  }
+
+  // ------------------------------------------------------------------- Media
+
+  async getMedia(params: { collection?: MediaCollection; search?: string } = {}): Promise<MediaAsset[]> {
+    const query = new URLSearchParams();
+    if (params.collection) query.set('collection', params.collection);
+    if (params.search) query.set('search', params.search);
+    const qs = query.toString();
+    return this.authenticatedRequest<MediaAsset[]>(`/admin/site-content/media${qs ? `?${qs}` : ''}`);
+  }
+
+  async uploadMedia(file: Blob, fileName: string, meta: MediaUploadMeta): Promise<MediaAsset> {
+    const form = new FormData();
+    form.append('file', file, fileName);
+    form.append('title', meta.title);
+    if (meta.caption) form.append('caption', meta.caption);
+    if (meta.category) form.append('category', meta.category);
+    form.append('collection', meta.collection);
+    form.append('isVisible', meta.isVisible ? 'true' : 'false');
+    if (meta.width) form.append('width', String(meta.width));
+    if (meta.height) form.append('height', String(meta.height));
+    return this.authenticatedRequest<MediaAsset>('/admin/site-content/media', { method: 'POST', body: form });
+  }
+
+  async updateMedia(
+    id: string,
+    patch: Partial<Pick<MediaAsset, 'title' | 'caption' | 'category' | 'collection' | 'isVisible'>>,
+  ): Promise<MediaAsset> {
+    return this.authenticatedRequest<MediaAsset>(`/admin/site-content/media/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async reorderMedia(ids: string[]): Promise<{ reordered: number }> {
+    return this.authenticatedRequest<{ reordered: number }>('/admin/site-content/media/order', {
+      method: 'PUT',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  async getMediaUsage(id: string): Promise<{ usedIn: string[] }> {
+    return this.authenticatedRequest<{ usedIn: string[] }>(`/admin/site-content/media/${id}/usage`);
+  }
+
+  /** Records whose files were deleted from the bucket, and sections still using them. */
+  async getMissingMedia(): Promise<MissingMediaReport> {
+    return this.authenticatedRequest<MissingMediaReport>('/admin/site-content/media/missing');
+  }
+
+  /** Deletes the records of files already gone from the bucket (all when ids is omitted). */
+  async removeMissingMedia(ids?: string[]): Promise<{ removed: number; titles: string[] }> {
+    return this.authenticatedRequest<{ removed: number; titles: string[] }>('/admin/site-content/media/missing/remove', {
+      method: 'POST',
+      body: JSON.stringify(ids ? { ids } : {}),
+    });
+  }
+
+  /** Public site-wide content (no auth); used for the image slots. */
+  async getSiteImages(): Promise<SiteImages | null> {
+    const res = await this.request<{ global?: { images?: SiteImages } }>('/site-content/global');
+    return res?.global?.images ?? null;
+  }
+
+  /** 409 carries `usedIn` (see ApiError.data) when a section still shows the image. */
+  async deleteMedia(id: string, force = false): Promise<{ deleted: boolean; objectName: string }> {
+    return this.authenticatedRequest<{ deleted: boolean; objectName: string }>(
+      `/admin/site-content/media/${id}${force ? '?force=true' : ''}`,
+      { method: 'DELETE' },
+    );
+  }
+}
+
+// ------------------------------------------------------------- Site content
+
+export type SitePage = 'GLOBAL' | 'HOME' | 'ABOUT' | 'SERVICES' | 'CONTACT' | 'HALL_OF_FAME';
+
+/** Section metadata (no content), as listed on the overview. */
+export interface SiteSectionMeta {
+  page: SitePage;
+  key: string;
+  label: string;
+  description: string;
+  /** False for blocks the site can't work without (e.g. contact details). */
+  hideable: boolean;
+  isVisible: boolean;
+  sortOrder: number;
+  version: number;
+  updatedAt: string;
+  updatedByEmail: string | null;
+}
+
+export interface SiteSection extends SiteSectionMeta {
+  id: string;
+  /** Shape depends on the section; validated server-side (registry.ts). */
+  content: unknown;
+  createdAt: string;
+}
+
+export interface SitePageOverview {
+  page: SitePage;
+  sections: SiteSectionMeta[];
+}
+
+export interface SiteSectionRevision {
+  version: number;
+  editedByEmail: string | null;
+  createdAt: string;
+  snapshot: { content: unknown; isVisible: boolean };
+  isCurrent: boolean;
+}
+
+export type MediaCollection = 'HALL_OF_FAME' | 'LIBRARY';
+
+export interface MediaAsset {
+  id: string;
+  bucket: string;
+  objectName: string;
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+  title: string;
+  caption: string | null;
+  category: string | null;
+  collection: MediaCollection;
+  isVisible: boolean;
+  sortOrder: number;
+  uploadedByEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** The file is no longer in the bucket (deleted outside the admin panel). */
+  missing?: boolean;
+}
+
+/** A page section still pointing at a file that was deleted from the bucket. */
+export interface BrokenSectionRef {
+  section: string;
+  page: SitePage;
+  key: string;
+  url: string;
+}
+
+export interface MissingMediaReport {
+  records: MediaAsset[];
+  brokenSections: BrokenSectionRef[];
+}
+
+/** GLOBAL.images: every image slot the site and admin panel use (all nullable). */
+export interface SiteImages {
+  logo?: string | null;
+  pageHeroes?: { policies?: string | null; profile?: string | null; orders?: string | null };
+  admin?: Partial<
+    Record<
+      'login' | 'dashboard' | 'people' | 'partners' | 'pricing' | 'promotions' | 'content' | 'payments' | 'operations' | 'security',
+      string | null
+    >
+  >;
+}
+
+export interface MediaUploadMeta {
+  title: string;
+  caption?: string;
+  category?: string;
+  collection: MediaCollection;
+  isVisible: boolean;
+  width?: number;
+  height?: number;
 }
 
 export const api = new ApiClient();

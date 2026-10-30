@@ -6,7 +6,9 @@ import {
   CreditCard,
   FileText,
   Handshake,
+  Images,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -22,6 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import BrandLogo from './BrandLogo';
 import { useAccess } from '../hooks/useAccess';
 import type { AdminPage } from '../lib/api';
 
@@ -67,6 +70,8 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/reviews', label: 'Reviews', page: 'REVIEWS', icon: Star },
       { to: '/policies', label: 'Policies', page: 'POLICIES', icon: FileText },
+      { to: '/site-content', label: 'Site Content', page: 'SITE_CONTENT', icon: LayoutTemplate },
+      { to: '/media', label: 'Media Library', page: 'SITE_CONTENT', icon: Images },
     ],
   },
   {
@@ -146,7 +151,7 @@ export default function Layout() {
   // Navy sidebar in the customer site's footer style: white/65 links that
   // brighten on hover, and a brand-blue glowing pill for the current section.
   const linkClasses = ({ isActive }: { isActive: boolean }) =>
-    `group relative flex items-center gap-3 rounded-xl px-2.5 py-1.5 text-sm transition-all duration-200 ${rail('lg:justify-center lg:px-0')} ${
+    `group relative flex items-center gap-3 rounded-xl px-2.5 py-1 text-sm transition-all duration-200 ${rail('lg:justify-center lg:px-0')} ${
       isActive
         ? 'bg-gradient-to-r from-primary-button to-blue-500 font-bold text-white shadow-lg shadow-blue-950/40'
         : 'font-semibold text-white/65 hover:bg-white/[0.06] hover:text-white'
@@ -178,7 +183,7 @@ export default function Layout() {
 
       <div className={`relative flex shrink-0 items-center justify-between gap-2 px-5 pt-4 pb-3 ${rail('lg:flex-col lg:px-3')}`}>
         <div className="flex min-w-0 items-center gap-3">
-          <img src="/logo.png" alt="Soul Paradise" className={`h-11 w-auto drop-shadow ${rail('lg:h-10')}`} />
+          <BrandLogo className={`h-11 w-auto ${rail('lg:h-10')}`} wordmark={false} />
           <div className={`min-w-0 leading-tight ${rail('lg:hidden')}`}>
             <p className="truncate text-sm font-extrabold tracking-tight text-white">Soul Paradise</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300">Admin console</p>
@@ -206,7 +211,7 @@ export default function Layout() {
           </div>
         ) : (
           visibleGroups.map((group) => (
-            <div key={group.title} className="mt-3 first:mt-0">
+            <div key={group.title} className="mt-2.5 first:mt-0">
               <p className={`mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 ${rail('lg:hidden')}`}>{group.title}</p>
               {/* In the icon rail a thin rule stands in for the group title. */}
               <div className={`mx-auto mb-2 hidden h-px w-8 bg-white/10 ${rail('lg:block')}`} aria-hidden="true" />
@@ -300,7 +305,7 @@ export default function Layout() {
         >
           <Menu className="h-6 w-6" strokeWidth={1.75} />
         </button>
-        <img src="/logo.png" alt="Soul Paradise" className="h-10 w-auto" />
+        <BrandLogo className="h-10 w-auto" />
         <span className="truncate text-sm font-bold">{currentLabel}</span>
       </header>
 

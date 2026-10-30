@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { AlertCircle, Eye, EyeOff, LoaderCircle, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { FIELD_LABEL, INPUT } from '../lib/ui-styles';
+import { useSiteImages } from '../hooks/useSiteImages';
+import BrandLogo from '../components/BrandLogo';
 
 /**
  * Same two-pane layout as the customer site's AuthLayout: photo on the left
@@ -9,6 +11,7 @@ import { FIELD_LABEL, INPUT } from '../lib/ui-styles';
  */
 export default function Login() {
   const { login, error, isSigningIn, clearError } = useAuth();
+  const loginImage = useSiteImages().images?.admin?.login ?? null;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,13 +26,21 @@ export default function Login() {
     <div className="flex min-h-dvh bg-background">
       {/* Left pane: the site plays a video here; a still keeps the admin light. */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-3">
-        <img
-          src="https://storage.googleapis.com/static_hero_images/maldives-island-coast.webp"
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-black/35" aria-hidden="true" />
-        <img src="/logo.png" alt="Soul Paradise" className="absolute top-6 left-8 z-10 h-16 w-auto" />
+        {loginImage ? (
+          <>
+            <img src={loginImage} alt="" className="h-full w-full object-cover" />
+            <div className="pointer-events-none absolute inset-0 bg-black/35" aria-hidden="true" />
+          </>
+        ) : (
+          // No photo chosen in Site Content > Site-wide images: plain navy panel.
+          <div className="absolute inset-0 bg-gradient-to-br from-ink-soft to-ink" aria-hidden="true">
+            <span className="absolute -top-24 -left-16 h-80 w-80 rounded-full bg-blue-500/25 blur-3xl" />
+            <span className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-orange-500/15 blur-3xl" />
+          </div>
+        )}
+        <div className="absolute top-6 left-8 z-10">
+          <BrandLogo className="h-16 w-auto" />
+        </div>
       </div>
 
       <div className="relative flex-2 overflow-y-auto">
@@ -38,7 +49,9 @@ export default function Login() {
           <span className="absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
         </div>
 
-        <img src="/logo.png" alt="Soul Paradise" className="absolute top-3 left-4 z-10 h-12 w-auto sm:top-4 sm:left-6 lg:hidden" />
+        <div className="absolute top-3 left-4 z-10 sm:top-4 sm:left-6 lg:hidden">
+          <BrandLogo className="h-12 w-auto" tone="dark" />
+        </div>
 
         <div className="relative flex min-h-dvh items-center justify-center px-4 pt-16 pb-6 sm:px-8 lg:py-6">
           <div className="animate-fade-up w-full max-w-[460px] rounded-2xl bg-peace px-6 py-6 shadow-xl ring-1 ring-tertiary-button sm:px-7">

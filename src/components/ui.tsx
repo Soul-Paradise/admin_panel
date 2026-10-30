@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { BTN_GHOST, BTN_SM, CARD, CARD_LINK, GRADIENTS, LABEL, TONES, heroImageFor, type Accent, type Tone } from '../lib/ui-styles';
+import { BTN_GHOST, BTN_SM, CARD, CARD_LINK, GRADIENTS, LABEL, TONES, type Accent, type Tone } from '../lib/ui-styles';
+import { adminSlotFor, useSiteImages } from '../hooks/useSiteImages';
 
 /**
  * The admin panel's building blocks, styled exactly like the customer site
@@ -84,10 +85,19 @@ export function PageHeader({
   /** Anything else that belongs on the banner (badges, meta rows). */
   children?: ReactNode;
 }) {
-  const src = image ?? heroImageFor(section ?? (typeof eyebrow === 'string' ? eyebrow : ''));
+  const { images } = useSiteImages();
+  // Photo comes from Site Content > Site-wide images; none means the navy design.
+  const src = image ?? images?.admin?.[adminSlotFor(section ?? (typeof eyebrow === 'string' ? eyebrow : ''))] ?? null;
   return (
-    <section className="animate-fade-up relative mb-6 overflow-hidden rounded-3xl shadow-xl shadow-ink/10 sm:mb-8">
-      <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    <section className="animate-fade-up relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-ink-soft to-ink shadow-xl shadow-ink/10 sm:mb-8">
+      {src ? (
+        <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <span className="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-blue-500/25 blur-3xl" />
+          <span className="absolute -bottom-28 left-1/4 h-64 w-64 rounded-full bg-orange-500/15 blur-3xl" />
+        </div>
+      )}
       <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/80 to-ink/30" aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-links via-sky-400 to-accent-light" aria-hidden="true" />
 

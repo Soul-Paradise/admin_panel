@@ -28,6 +28,7 @@ const PAGE_META: Record<AdminPage, { label: string; hint: string; sensitive?: bo
   UTILITIES: { label: 'Utilities', hint: 'Reports and platform tools' },
   CUSTOM_PAYMENTS: { label: 'Custom Payments', hint: 'Payments made from the website Custom Payment tab' },
   POLICIES: { label: 'Policies', hint: 'Terms, privacy and other legal pages' },
+  SITE_CONTENT: { label: 'Site Content', hint: 'Public pages: text, sections and images' },
   USER_ACCESS: {
     label: 'User Access',
     hint: 'Admin permissions - this page',
@@ -48,6 +49,7 @@ const FALLBACK_PAGES: AdminPage[] = [
   'UTILITIES',
   'CUSTOM_PAYMENTS',
   'POLICIES',
+  'SITE_CONTENT',
   'USER_ACCESS',
   'AUDIT_LOGS',
 ];

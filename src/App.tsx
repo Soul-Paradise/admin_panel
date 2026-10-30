@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AccessProvider } from './contexts/AccessContext';
+import { SiteImagesProvider } from './contexts/SiteImagesContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/PageLoader';
@@ -21,6 +22,9 @@ import AuditLogs from './pages/AuditLogs';
 import CustomPayments from './pages/CustomPayments';
 import Policies from './pages/Policies';
 import PolicyEditor from './pages/PolicyEditor';
+import SiteContent from './pages/SiteContent';
+import SitePageEditor from './pages/SitePageEditor';
+import MediaLibrary from './pages/MediaLibrary';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -38,6 +42,7 @@ function LoginRoute() {
 
 export default function App() {
   return (
+    <SiteImagesProvider>
     <BrowserRouter>
       <AuthProvider>
         <AccessProvider>
@@ -150,6 +155,30 @@ export default function App() {
                 }
               />
               <Route
+                path="site-content"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <SiteContent />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="site-content/:page"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <SitePageEditor />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="media"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <MediaLibrary />
+                  </SectionRoute>
+                }
+              />
+              <Route
                 path="user-access"
                 element={
                   <SectionRoute page="USER_ACCESS">
@@ -174,5 +203,6 @@ export default function App() {
         </AccessProvider>
       </AuthProvider>
     </BrowserRouter>
+    </SiteImagesProvider>
   );
 }

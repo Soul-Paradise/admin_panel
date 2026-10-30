@@ -135,7 +135,11 @@ export default function Login() {
       {/* Right pane: the site uses a looping video here. A still keeps the admin
           bundle light while matching the same imagery. */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-3">
-        <img src="/hero_bg.jpg" alt="" className="h-full w-full object-cover" />
+        <img
+          src="https://storage.googleapis.com/static_hero_images/maldives-island-coast.webp"
+          alt=""
+          className="h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-foreground/45" />
       </div>
     </div>

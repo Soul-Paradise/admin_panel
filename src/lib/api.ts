@@ -20,7 +20,8 @@ export type AdminPage =
   | 'CUSTOM_PAYMENTS'
   | 'POLICIES'
   | 'SITE_CONTENT'
-  | 'ORDERS';
+  | 'ORDERS'
+  | 'CUSTOMER_MESSAGES';
 
 export type AccessLevel = 'READ' | 'WRITE';
 
@@ -626,6 +627,54 @@ export interface PaginatedAuditLogs {
   pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
+// ---------------------------------------------------------- Customer messages
+
+/** Where the team is with a Contact Us message. */
+export type ContactInboxStatus = 'NEW' | 'READ' | 'RESOLVED';
+/** Whether the notification email reached the admin inboxes. */
+export type ContactEmailStatus = 'PENDING' | 'SENT' | 'FAILED';
+export type ContactFilter = ContactInboxStatus | 'EMAIL_FAILED';
+
+export interface ContactMessage {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  subject: string;
+  message: string;
+  status: ContactEmailStatus;
+  sentAt: string | null;
+  errorMessage: string | null;
+  deliveredTo: string[];
+  emailAttempts: number;
+  inboxStatus: ContactInboxStatus;
+  readAt: string | null;
+  resolvedAt: string | null;
+  handledByEmail: string | null;
+  adminNote: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactMessagesResponse {
+  items: ContactMessage[];
+  summary: Record<ContactInboxStatus | 'EMAIL_FAILED' | 'all', number>;
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+}
+
+export interface ContactSettings {
+  /** Inboxes chosen in the admin panel. */
+  recipients: string[];
+  /** ADMIN_EMAIL from the server config, used while `recipients` is empty. */
+  fallback: string[];
+  /** Where messages actually go right now. */
+  effective: string[];
+  updatedByEmail: string | null;
+  updatedAt: string | null;
+}
+
 // -------------------------------------------------------------------- Policies
 
 /** One numbered section of a legal page. Numbering is positional. */
@@ -1173,6 +1222,62 @@ class ApiClient {
     return this.authenticatedRequest<AdminCustomPaymentsResponse>(
       `/admin/custom-payments?${query.toString()}`,
     );
+  }
+
+  // --------------------------------------------------------- Customer messages
+
+  async getContactMessages(params: {
+    filter?: ContactFilter;
+    search?: string;
+    from?: string;
+    to?: string;
+    pageNum?: number;
+    limit?: number;
+  } = {}): Promise<ContactMessagesResponse> {
+    const query = new URLSearchParams();
+    if (params.filter) query.set('filter', params.filter);
+    if (params.search) query.set('search', params.search);
+    if (params.from) query.set('from', params.from);
+    if (params.to) query.set('to', params.to);
+    query.set('pageNum', String(params.pageNum ?? 1));
+    query.set('limit', String(params.limit ?? 25));
+
+    return this.authenticatedRequest<ContactMessagesResponse>(
+      `/admin/customer-messages?${query.toString()}`,
+    );
+  }
+
+  async updateContactMessage(
+    id: string,
+    input: { inboxStatus?: ContactInboxStatus; adminNote?: string | null },
+  ): Promise<ContactMessage> {
+    return this.authenticatedRequest(`/admin/customer-messages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async resendContactMessage(id: string): Promise<ContactMessage> {
+    return this.authenticatedRequest(`/admin/customer-messages/${id}/resend`, {
+      method: 'POST',
+    });
+  }
+
+  async deleteContactMessage(id: string): Promise<{ success: boolean }> {
+    return this.authenticatedRequest(`/admin/customer-messages/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getContactSettings(): Promise<ContactSettings> {
+    return this.authenticatedRequest('/admin/customer-messages/settings');
+  }
+
+  async updateContactSettings(recipients: string[]): Promise<ContactSettings> {
+    return this.authenticatedRequest('/admin/customer-messages/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ recipients }),
+    });
   }
 
   // ---------------------------------------------------------------- Audit logs

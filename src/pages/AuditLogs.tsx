@@ -14,6 +14,7 @@ const PAGE_LABELS: Record<AdminPage, string> = {
   REVIEWS: 'Reviews',
   UTILITIES: 'Utilities',
   CUSTOM_PAYMENTS: 'Custom Payments',
+  POLICIES: 'Policies',
   USER_ACCESS: 'User Access',
   AUDIT_LOGS: 'Audit Logs',
 };
@@ -28,6 +29,7 @@ const PAGES: AdminPage[] = [
   'REVIEWS',
   'UTILITIES',
   'CUSTOM_PAYMENTS',
+  'POLICIES',
   'USER_ACCESS',
   'AUDIT_LOGS',
 ];

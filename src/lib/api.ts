@@ -17,7 +17,8 @@ export type AdminPage =
   | 'UTILITIES'
   | 'USER_ACCESS'
   | 'AUDIT_LOGS'
-  | 'CUSTOM_PAYMENTS';
+  | 'CUSTOM_PAYMENTS'
+  | 'POLICIES';
 
 export type AccessLevel = 'READ' | 'WRITE';
 
@@ -471,6 +472,70 @@ export interface PaginatedAuditLogs {
   pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
+// -------------------------------------------------------------------- Policies
+
+/** One numbered section of a legal page. Numbering is positional. */
+export interface LegalSection {
+  title: string;
+  paragraphs: string[];
+  /** Highlighted callouts shown under the paragraphs. */
+  subsections: { title: string; content: string }[];
+}
+
+/** The fields an admin edits (also what a revision snapshot holds). */
+export interface LegalDocumentContent {
+  title: string;
+  description: string;
+  metaDescription: string | null;
+  sections: LegalSection[];
+  helpTitle: string;
+  helpText: string;
+  isPublished: boolean;
+}
+
+export interface LegalDocument extends LegalDocumentContent {
+  id: string;
+  slug: string;
+  /** Built-in page with a fixed public route; can't be deleted. */
+  isSystem: boolean;
+  sortOrder: number;
+  version: number;
+  updatedByEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Route on the public site, e.g. /terms or /policies/visa-policy. */
+  path: string;
+}
+
+export interface LegalDocumentSummary extends Omit<LegalDocument, 'sections'> {
+  sectionCount: number;
+}
+
+export interface LegalRevision {
+  version: number;
+  editedByEmail: string | null;
+  createdAt: string;
+  title: string;
+  isCurrent: boolean;
+}
+
+export interface LegalRevisionDetail {
+  version: number;
+  snapshot: LegalDocumentContent;
+  editedByEmail: string | null;
+  createdAt: string;
+}
+
+export interface CreateLegalDocumentInput extends Omit<LegalDocumentContent, 'metaDescription'> {
+  slug: string;
+  metaDescription?: string | null;
+}
+
+export interface UpdateLegalDocumentInput extends LegalDocumentContent {
+  /** The version the editor loaded. */
+  version: number;
+}
+
 /**
  * Nest reports validation failures as `message: string[]`. Passing that array
  * straight to Error() stringifies it into one comma-joined wall of text, so the
@@ -903,6 +968,54 @@ class ApiClient {
     return this.authenticatedRequest<PaginatedAuditLogs>(
       `/admin/audit-logs?${query.toString()}`,
     );
+  }
+
+  // ---------------------------------------------------------------- Policies
+
+  async getLegalDocuments(): Promise<LegalDocumentSummary[]> {
+    return this.authenticatedRequest<LegalDocumentSummary[]>('/admin/legal');
+  }
+
+  async getLegalDocument(slug: string): Promise<LegalDocument> {
+    return this.authenticatedRequest<LegalDocument>(`/admin/legal/${encodeURIComponent(slug)}`);
+  }
+
+  async createLegalDocument(input: CreateLegalDocumentInput): Promise<LegalDocument> {
+    return this.authenticatedRequest<LegalDocument>('/admin/legal', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  /** 409 (ApiError.statusCode) means someone else saved since `input.version`. */
+  async updateLegalDocument(slug: string, input: UpdateLegalDocumentInput): Promise<LegalDocument> {
+    return this.authenticatedRequest<LegalDocument>(`/admin/legal/${encodeURIComponent(slug)}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getLegalRevisions(slug: string): Promise<LegalRevision[]> {
+    return this.authenticatedRequest<LegalRevision[]>(`/admin/legal/${encodeURIComponent(slug)}/revisions`);
+  }
+
+  async getLegalRevision(slug: string, revision: number): Promise<LegalRevisionDetail> {
+    return this.authenticatedRequest<LegalRevisionDetail>(
+      `/admin/legal/${encodeURIComponent(slug)}/revisions/${revision}`,
+    );
+  }
+
+  async restoreLegalDocument(slug: string, revision: number, version: number): Promise<LegalDocument> {
+    return this.authenticatedRequest<LegalDocument>(`/admin/legal/${encodeURIComponent(slug)}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ revision, version }),
+    });
+  }
+
+  async deleteLegalDocument(slug: string): Promise<{ deleted: boolean }> {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/legal/${encodeURIComponent(slug)}`, {
+      method: 'DELETE',
+    });
   }
 }
 

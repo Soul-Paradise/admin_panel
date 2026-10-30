@@ -19,6 +19,8 @@ import Utilities from './pages/Utilities';
 import UserAccess from './pages/UserAccess';
 import AuditLogs from './pages/AuditLogs';
 import CustomPayments from './pages/CustomPayments';
+import Policies from './pages/Policies';
+import PolicyEditor from './pages/PolicyEditor';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -128,6 +130,22 @@ export default function App() {
                 element={
                   <SectionRoute page="CUSTOM_PAYMENTS">
                     <CustomPayments />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="policies"
+                element={
+                  <SectionRoute page="POLICIES">
+                    <Policies />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="policies/:slug"
+                element={
+                  <SectionRoute page="POLICIES">
+                    <PolicyEditor />
                   </SectionRoute>
                 }
               />

@@ -4,6 +4,7 @@ import {
   BadgePercent,
   ChevronRight,
   CreditCard,
+  FileText,
   Handshake,
   LayoutDashboard,
   LogOut,
@@ -63,7 +64,10 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: 'Content',
-    items: [{ to: '/reviews', label: 'Reviews', page: 'REVIEWS', icon: Star }],
+    items: [
+      { to: '/reviews', label: 'Reviews', page: 'REVIEWS', icon: Star },
+      { to: '/policies', label: 'Policies', page: 'POLICIES', icon: FileText },
+    ],
   },
   {
     title: 'Security',

@@ -27,6 +27,7 @@ const PAGE_META: Record<AdminPage, { label: string; hint: string; sensitive?: bo
   REVIEWS: { label: 'Reviews', hint: 'Customer reviews and moderation' },
   UTILITIES: { label: 'Utilities', hint: 'Reports and platform tools' },
   CUSTOM_PAYMENTS: { label: 'Custom Payments', hint: 'Payments made from the website Custom Payment tab' },
+  POLICIES: { label: 'Policies', hint: 'Terms, privacy and other legal pages' },
   USER_ACCESS: {
     label: 'User Access',
     hint: 'Admin permissions - this page',
@@ -46,6 +47,7 @@ const FALLBACK_PAGES: AdminPage[] = [
   'REVIEWS',
   'UTILITIES',
   'CUSTOM_PAYMENTS',
+  'POLICIES',
   'USER_ACCESS',
   'AUDIT_LOGS',
 ];

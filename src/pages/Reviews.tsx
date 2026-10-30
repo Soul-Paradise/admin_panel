@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { MessageSquareQuote } from 'lucide-react';
 import { api, type Testimonial } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
+import { Alert, Badge, EmptyState, PageHeader, Pagination, Spinner, Tabs } from '../components/ui';
+import { BTN_DANGER, BTN_GHOST, BTN_SM, BTN_SUCCESS, CARD, PAGE } from '../lib/ui-styles';
 
 type TabKey = 'pending' | 'approved' | 'all';
 
@@ -18,12 +21,14 @@ const EMPTY_COPY: Record<TabKey, string> = {
 
 const PAGE_SIZE = 20;
 
+const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message) || fallback;
+
 function Stars({ rating }: { rating: number }) {
   const filled = Math.max(0, Math.min(5, Math.round(rating)));
   return (
     <span className="text-sm leading-none tracking-tight" title={`${filled} of 5`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= filled ? 'text-amber-700' : 'text-gray-700'}>
+        <span key={i} className={i <= filled ? 'text-warn' : 'text-tertiary-button'}>
           ★
         </span>
       ))}
@@ -65,8 +70,8 @@ export default function Reviews() {
       });
       setItems(res.data);
       setTotalPages(Math.max(1, res.pagination.totalPages));
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to load reviews' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to load reviews') });
       setItems([]);
       setTotalPages(1);
     } finally {
@@ -107,8 +112,8 @@ export default function Reviews() {
         text: isApproved ? 'Review approved' : 'Review unapproved',
       });
       await refresh();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to update review' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to update review') });
     } finally {
       setBusyId(null);
     }
@@ -121,114 +126,78 @@ export default function Reviews() {
       await api.deleteTestimonial(t.id);
       setMessage({ type: 'success', text: 'Review deleted' });
       await refresh();
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.message || 'Failed to delete review' });
+    } catch (err) {
+      setMessage({ type: 'error', text: errorText(err, 'Failed to delete review') });
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Reviews</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Moderate customer testimonials</p>
-        </div>
-        {!writable && (
-          <span className="text-xs font-medium text-gray-500 bg-background border border-gray-300 rounded-lg px-3 py-1.5">
-            Read-only access
-          </span>
-        )}
-      </div>
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Content"
+        title="Reviews"
+        subtitle="Moderate customer testimonials"
+        actions={!writable ? <Badge tone="slate">Read-only access</Badge> : undefined}
+      />
 
-      {/* Message */}
       {message && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-            message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {message.text}
+        <div className="mb-4">
+          <Alert tone={message.type}>{message.text}</Alert>
         </div>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1 mb-5 bg-peace border border-tertiary-button rounded-xl shadow-sm p-1 w-fit">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => selectTab(t.key)}
-            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key
-                ? 'bg-tertiary-button text-foreground'
-                : 'text-gray-600 hover:text-foreground'
-            }`}
-          >
-            {t.label}
-            {t.key === 'pending' && pendingCount !== null && pendingCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Filter tabs - the pending count only shows while there's something to moderate. */}
+      <div className="mb-5">
+        <Tabs
+          label="Filter reviews"
+          active={tab}
+          onChange={selectTab}
+          options={TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === 'pending' && pendingCount !== null && pendingCount > 0 ? pendingCount : undefined,
+          }))}
+        />
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="text-gray-500 text-sm">Loading...</div>
+        <div className={CARD}>
+          <Spinner label="Loading reviews…" />
+        </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">{EMPTY_COPY[tab]}</p>
+        <div className={CARD}>
+          <EmptyState icon={MessageSquareQuote} title="Nothing here" message={EMPTY_COPY[tab]} />
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((t) => (
-            <div
-              key={t.id}
-              className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-5 hover:border-secondary-button transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
+            <div key={t.id} className={`p-5 transition-colors hover:border-links/30 ${CARD}`}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-semibold text-foreground">{t.name}</span>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="font-bold text-foreground">{t.name}</span>
                     <Stars rating={t.rating} />
-                    {t.service && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-50 text-links border-blue-200">
-                        {t.service}
-                      </span>
-                    )}
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                        t.isApproved
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-gray-100 text-gray-600 border-gray-300'
-                      }`}
-                    >
+                    {t.service && <Badge tone="blue">{t.service}</Badge>}
+                    <Badge tone={t.isApproved ? 'green' : 'slate'} dot>
                       {t.isApproved ? 'Approved' : 'Pending'}
-                    </span>
+                    </Badge>
                   </div>
 
-                  <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap break-words">
-                    {t.review}
-                  </p>
+                  <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground">{t.review}</p>
 
-                  <p className="text-xs text-gray-500 mt-3">
-                    {new Date(t.createdAt).toLocaleString()}
-                  </p>
+                  <p className="mt-3 text-xs text-inactive">{new Date(t.createdAt).toLocaleString()}</p>
                 </div>
 
                 {writable && (
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex shrink-0 items-center gap-2">
                     {t.isApproved ? (
                       <button
                         onClick={() => handleApproval(t, false)}
                         disabled={busyId === t.id}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-50 rounded-lg transition-colors"
+                        className={`${BTN_GHOST} ${BTN_SM}`}
                       >
                         Unapprove
                       </button>
@@ -236,16 +205,12 @@ export default function Reviews() {
                       <button
                         onClick={() => handleApproval(t, true)}
                         disabled={busyId === t.id}
-                        className="px-3 py-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 rounded-lg transition-colors"
+                        className={`${BTN_SUCCESS} ${BTN_SM}`}
                       >
                         Approve
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDelete(t)}
-                      disabled={busyId === t.id}
-                      className="px-3 py-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 disabled:opacity-50 rounded-lg transition-colors"
-                    >
+                    <button onClick={() => handleDelete(t)} disabled={busyId === t.id} className={`${BTN_DANGER} ${BTN_SM}`}>
                       Delete
                     </button>
                   </div>
@@ -256,26 +221,9 @@ export default function Reviews() {
         </div>
       )}
 
-      {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-5">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background rounded-lg transition-colors"
-          >
-            Previous
-          </button>
-          <span className="text-xs text-gray-500">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-foreground bg-background hover:bg-tertiary-button disabled:opacity-40 disabled:hover:bg-background rounded-lg transition-colors"
-          >
-            Next
-          </button>
+        <div className={`mt-5 overflow-hidden ${CARD}`}>
+          <Pagination page={page} totalPages={totalPages} onPage={(p) => setPage(Math.min(totalPages, Math.max(1, p)))} />
         </div>
       )}
     </div>

@@ -8,7 +8,14 @@ const ADMIN_ROLES: UserRole[] = ['ADMIN', 'SUPER_ADMIN'];
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  /** The initial session check on app load (route guards wait on this). */
   isLoading: boolean;
+  /**
+   * A sign-in attempt in flight. Kept apart from isLoading so the login route
+   * doesn't swap the form for the full-page loader mid-attempt - that remounted
+   * the form and wiped the typed email after a wrong password.
+   */
+  isSigningIn: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = useMemo(() => !!user, [user]);
@@ -56,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       setError(null);
-      setIsLoading(true);
+      setIsSigningIn(true);
 
       const response = await api.login(email, password);
 
@@ -64,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!ADMIN_ROLES.includes(response.user.role)) {
         api.clearTokens();
         setError('Access denied. Admin privileges required.');
-        setIsLoading(false);
         return;
       }
 
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const apiError = err as ApiError;
       setError(apiError.message || 'Login failed.');
     } finally {
-      setIsLoading(false);
+      setIsSigningIn(false);
     }
   }, [navigate]);
 
@@ -95,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkAuth]);
 
   const value = useMemo<AuthContextType>(
-    () => ({ user, isAuthenticated, isLoading, error, login, logout, clearError }),
-    [user, isAuthenticated, isLoading, error, login, logout, clearError],
+    () => ({ user, isAuthenticated, isLoading, isSigningIn, error, login, logout, clearError }),
+    [user, isAuthenticated, isLoading, isSigningIn, error, login, logout, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

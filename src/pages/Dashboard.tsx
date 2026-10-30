@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BadgePercent, Handshake, ShieldCheck, TicketPercent, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useAccess } from '../hooks/useAccess';
+import { Alert, IconTile, PageHeader, SectionTitle, StatTile } from '../components/ui';
+import { CARD, CARD_LINK, PAGE, type Accent } from '../lib/ui-styles';
 
 interface Stats {
   total: number;
@@ -44,12 +46,12 @@ export default function Dashboard() {
     fetchStats();
   }, []);
 
-  const cards: { label: string; value: number; accent: string }[] = stats
+  const cards: { label: string; value: number; icon: LucideIcon; accent: Accent }[] = stats
     ? [
-        { label: 'Total Users', value: stats.total, accent: 'bg-links' },
-        { label: 'Customers', value: stats.customers, accent: 'bg-success' },
-        { label: 'Booking Partners', value: stats.agents, accent: 'bg-warn' },
-        { label: 'Admins', value: stats.admins, accent: 'bg-primary-button' },
+        { label: 'Total Users', value: stats.total, icon: Users, accent: 'blue' },
+        { label: 'Customers', value: stats.customers, icon: UserRound, accent: 'green' },
+        { label: 'Booking Partners', value: stats.agents, icon: Handshake, accent: 'orange' },
+        { label: 'Admins', value: stats.admins, icon: ShieldCheck, accent: 'purple' },
       ]
     : [];
 
@@ -57,29 +59,22 @@ export default function Dashboard() {
   // landing page never offers a section the user would be refused.
   const shortcuts = (
     [
-      { to: '/users', label: 'User Details', page: 'USERS' as const, hint: 'Browse and manage customer accounts' },
-      { to: '/partners', label: 'Booking Partners', page: 'BOOKING_PARTNERS' as const, hint: 'Approve and review partner agents' },
-      { to: '/commissions', label: 'Commission', page: 'COMMISSION' as const, hint: 'Set service commission rates' },
-      { to: '/coupons', label: 'Coupons', page: 'COUPONS' as const, hint: 'Create and manage discount codes' },
+      { to: '/users', label: 'User Details', page: 'USERS' as const, hint: 'Browse and manage customer accounts', icon: Users, accent: 'blue' as const },
+      { to: '/partners', label: 'Booking Partners', page: 'BOOKING_PARTNERS' as const, hint: 'Approve and review partner agents', icon: Handshake, accent: 'orange' as const },
+      { to: '/commissions', label: 'Commission', page: 'COMMISSION' as const, hint: 'Set service commission rates', icon: BadgePercent, accent: 'green' as const },
+      { to: '/coupons', label: 'Coupons', page: 'COUPONS' as const, hint: 'Create and manage discount codes', icon: TicketPercent, accent: 'purple' as const },
     ] as const
   ).filter((s) => canRead(s.page));
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Welcome back, {firstName}
-        </h1>
-        <p className="mt-2 text-sm text-foreground">
-          Here's a snapshot of the Soul Paradise platform.
-        </p>
-      </header>
+    <div className={PAGE}>
+      <PageHeader eyebrow="Dashboard" title={`Welcome back, ${firstName}`} subtitle="Here's a snapshot of the Soul Paradise platform." />
 
       {error && (
-        <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
+        <div className="mb-6">
+          <Alert tone="error">{error}</Alert>
         </div>
       )}
 
@@ -87,39 +82,31 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-tertiary-button bg-peace p-4 shadow-sm sm:p-5">
-                <div className="h-3 w-20 animate-pulse rounded bg-tertiary-button" />
-                <div className="mt-3 h-7 w-12 animate-pulse rounded bg-tertiary-button" />
+              <div key={i} className={`flex items-start gap-3 p-4 ${CARD}`}>
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-100" />
+                <div className="flex-1">
+                  <div className="h-2.5 w-20 animate-pulse rounded-full bg-slate-100" />
+                  <div className="mt-3 h-6 w-12 animate-pulse rounded-full bg-slate-100" />
+                </div>
               </div>
             ))
           : cards.map((card) => (
-              <div key={card.label} className="rounded-xl border border-tertiary-button bg-peace p-4 shadow-sm sm:p-5">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${card.accent}`} aria-hidden="true" />
-                  <p className="truncate text-xs font-semibold text-inactive sm:text-sm">{card.label}</p>
-                </div>
-                <p className="mt-2 text-2xl font-bold tabular-nums text-foreground sm:text-3xl">
-                  {card.value.toLocaleString('en-IN')}
-                </p>
-              </div>
+              <StatTile key={card.label} label={card.label} value={card.value.toLocaleString('en-IN')} icon={card.icon} accent={card.accent} />
             ))}
       </div>
 
       {shortcuts.length > 0 && (
         <section className="mt-8 sm:mt-10">
-          <h2 className="mb-3 text-sm font-bold text-foreground">Quick links</h2>
+          <SectionTitle>Quick links</SectionTitle>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {shortcuts.map((s) => (
-              <Link
-                key={s.to}
-                to={s.to}
-                className="rounded-xl border border-tertiary-button bg-peace p-4 shadow-sm transition-colors duration-200 hover:border-secondary-button"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-bold text-foreground">{s.label}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-links" strokeWidth={2} />
+              <Link key={s.to} to={s.to} className={`group p-4 ${CARD_LINK}`}>
+                <div className="flex items-center gap-3">
+                  <IconTile icon={s.icon} accent={s.accent} size="sm" />
+                  <span className="flex-1 text-sm font-bold text-foreground group-hover:text-links">{s.label}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-links transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">{s.hint}</p>
+                <p className="mt-2 text-xs leading-relaxed text-inactive">{s.hint}</p>
               </Link>
             ))}
           </div>

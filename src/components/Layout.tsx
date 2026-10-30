@@ -56,10 +56,11 @@ function initials(name: string | undefined): string {
 }
 
 const linkClasses = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
+  // Same active / hover treatment as the customer site's navbar links.
+  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200 ${
     isActive
-      ? 'bg-tertiary-button font-bold text-active'
-      : 'font-semibold text-inactive hover:bg-background hover:text-active'
+      ? 'bg-primary-tint font-bold text-links'
+      : 'font-semibold text-inactive hover:bg-primary-tint/50 hover:text-links'
   }`;
 
 export default function Layout() {
@@ -107,11 +108,11 @@ export default function Layout() {
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {isLoading ? (
-          <div className="px-3 py-2 text-xs text-gray-500">Loading…</div>
+          <div className="px-3 py-2 text-xs text-inactive">Loading…</div>
         ) : visibleItems.length === 0 ? (
           // An admin with no grants at all. Say so plainly rather than showing
           // an empty sidebar that looks like a broken page.
-          <div className="px-3 py-2 text-xs leading-relaxed text-gray-500">
+          <div className="px-3 py-2 text-xs leading-relaxed text-inactive">
             No sections have been assigned to your account yet. Ask a super admin
             to grant you access.
           </div>
@@ -140,14 +141,14 @@ export default function Layout() {
 
       {/* Account card */}
       <div className="shrink-0 border-t border-tertiary-button p-3">
-        <div className="rounded-xl border border-tertiary-button bg-background p-3">
+        <div className="rounded-2xl border border-tertiary-button bg-background p-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-button text-[11px] font-bold tracking-wide text-peace ring-2 ring-peace">
               {initials(user?.name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm leading-tight font-bold text-foreground">{user?.name}</p>
-              <p className="truncate text-xs leading-tight text-gray-500">{user?.email}</p>
+              <p className="truncate text-xs leading-tight text-inactive">{user?.email}</p>
             </div>
           </div>
 
@@ -159,8 +160,8 @@ export default function Layout() {
             <span
               className={`inline-flex h-7 min-w-0 items-center truncate rounded-full border px-2.5 text-[11px] leading-none font-bold ${
                 isSuperAdmin
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-tertiary-button bg-peace text-gray-600'
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : 'border-tertiary-button bg-peace text-inactive'
               }`}
             >
               {isSuperAdmin ? 'Super Admin' : 'Admin'}
@@ -168,7 +169,7 @@ export default function Layout() {
 
             <button
               onClick={logout}
-              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-tertiary-button bg-peace px-2.5 text-xs font-bold text-gray-600 shadow-sm transition-colors duration-200 hover:border-red-200 hover:bg-red-50 hover:text-danger"
+              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-tertiary-button bg-peace px-3 text-xs font-bold text-inactive transition-colors duration-200 hover:border-danger hover:bg-danger hover:text-peace"
             >
               <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
               Sign out

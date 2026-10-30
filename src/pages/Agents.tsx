@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, FileText, Handshake } from 'lucide-react';
 import {
   api,
   type AgentApplication,
@@ -6,6 +7,21 @@ import {
   type AgentListItem,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
+import { Alert, Badge, EmptyState, PageHeader, SectionTitle, Spinner, Tabs } from '../components/ui';
+import {
+  BTN_DANGER,
+  BTN_GHOST,
+  BTN_SM,
+  BTN_SUCCESS,
+  CARD,
+  CARD_LINK,
+  LABEL,
+  PAGE,
+  TABLE_HEAD,
+  TBODY,
+  TH,
+  TROW,
+} from '../lib/ui-styles';
 
 type AccessTab = 'ACTIVE' | 'REVOKED' | 'ALL';
 
@@ -15,10 +31,16 @@ const ACCESS_TABS: Array<{ id: AccessTab; label: string }> = [
   { id: 'ALL', label: 'All' },
 ];
 
-function accessBadge(isActive: boolean): { label: string; className: string } {
-  return isActive
-    ? { label: 'Active', className: 'bg-green-50 text-green-700 border-green-200' }
-    : { label: 'Revoked', className: 'bg-red-50 text-red-700 border-red-200' };
+function AccessBadge({ isActive }: { isActive: boolean }) {
+  return isActive ? (
+    <Badge tone="green" dot>
+      Active
+    </Badge>
+  ) : (
+    <Badge tone="red" dot>
+      Revoked
+    </Badge>
+  );
 }
 
 const DOC_LABELS: Record<string, string> = {
@@ -27,6 +49,8 @@ const DOC_LABELS: Record<string, string> = {
   AADHAAR_BACK: 'Aadhaar (Back)',
   GST_CERTIFICATE: 'GST Certificate',
 };
+
+const errorText = (err: unknown, fallback: string) => (err instanceof Error && err.message) || fallback;
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString('en-IN', {
@@ -77,8 +101,8 @@ export default function Agents() {
         limit: 50,
       });
       setItems(result.items);
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to load partners' });
+    } catch (error) {
+      setMessage({ type: 'error', text: errorText(error, 'Failed to load partners') });
     } finally {
       setLoading(false);
     }
@@ -93,8 +117,8 @@ export default function Agents() {
 
     try {
       setSelected(await api.getAgent(id));
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to load partner' });
+    } catch (error) {
+      setMessage({ type: 'error', text: errorText(error, 'Failed to load partner') });
     } finally {
       setDetailLoading(false);
     }
@@ -122,8 +146,8 @@ export default function Agents() {
         setSelected(null);
         void fetchAgents();
         void fetchRevokedCount();
-      } catch (error: any) {
-        setMessage({ type: 'error', text: error.message || 'Failed to revoke access' });
+      } catch (error) {
+        setMessage({ type: 'error', text: errorText(error, 'Failed to revoke access') });
       }
 
       return;
@@ -146,61 +170,38 @@ export default function Agents() {
       setSelected(null);
       void fetchAgents();
       void fetchRevokedCount();
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to restore access' });
+    } catch (error) {
+      setMessage({ type: 'error', text: errorText(error, 'Failed to restore access') });
     }
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Booking Partners</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Booking partners are active as soon as they register. Review their KYC
-            details and revoke or restore access here.
-          </p>
-        </div>
-      </div>
+    <div className={PAGE}>
+      <PageHeader
+        eyebrow="Partners"
+        title="Booking Partners"
+        subtitle="Booking partners are active as soon as they register. Review their KYC details and revoke or restore access here."
+      />
 
       {message && (
-        <div
-          className={`mb-6 flex items-start justify-between gap-4 px-4 py-3 rounded-lg border ${
-            message.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-700'
-              : 'bg-red-50 border-red-200 text-red-700'
-          }`}
-        >
-          <span className="text-sm">{message.text}</span>
-          <button
-            onClick={() => setMessage(null)}
-            className="text-lg leading-none opacity-60 hover:opacity-100"
-            aria-label="Dismiss"
-          >
-            &times;
-          </button>
+        <div className="mb-6">
+          <Alert tone={message.type} onClose={() => setMessage(null)}>
+            {message.text}
+          </Alert>
         </div>
       )}
 
-      <div className="flex gap-1 mb-6 border-b border-tertiary-button">
-        {ACCESS_TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.id
-                ? 'border-blue-500 text-links'
-                : 'border-transparent text-gray-600 hover:text-foreground'
-            }`}
-          >
-            {t.label}
-            {t.id === 'REVOKED' && revokedCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                {revokedCount}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="mb-6">
+        <Tabs
+          label="Partner access"
+          active={tab}
+          onChange={setTab}
+          options={ACCESS_TABS.map((t) => ({
+            key: t.id,
+            label: t.label,
+            count: t.id === 'REVOKED' && revokedCount > 0 ? revokedCount : undefined,
+          }))}
+        />
       </div>
 
       {selected ? (
@@ -212,66 +213,52 @@ export default function Agents() {
           canDecide={canDecide}
         />
       ) : loading ? (
-        <p className="text-gray-500">Loading…</p>
+        <div className={CARD}>
+          <Spinner label="Loading partners…" />
+        </div>
       ) : items.length === 0 ? (
-        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm px-6 py-12 text-center">
-          <p className="text-gray-600">
-            {tab === 'REVOKED'
-              ? 'No revoked partners.'
-              : tab === 'ACTIVE'
-                ? 'No active partners yet.'
-                : 'Nothing here.'}
-          </p>
+        <div className={CARD}>
+          <EmptyState
+            icon={Handshake}
+            title={tab === 'REVOKED' ? 'No revoked partners.' : tab === 'ACTIVE' ? 'No active partners yet.' : 'Nothing here.'}
+          />
         </div>
       ) : (
-        <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm overflow-hidden">
+        <div className={`overflow-hidden ${CARD}`}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px]">
-              <thead className="bg-background">
-                <tr>
-                  {['Agency', 'Contact', 'Location', 'Registered', 'Access', ''].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
+              <thead className={TABLE_HEAD}>
+                <tr className="border-b border-tertiary-button">
+                  {['Agency', 'Contact', 'Location', 'Registered', 'Access', ''].map((h) => (
+                    <th key={h} className={TH}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tertiary-button">
+              <tbody className={TBODY}>
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-background">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-medium text-foreground">
-                        {item.agencyName}
-                      </p>
-                      <p className="text-xs text-gray-500">{item.user.name}</p>
+                  <tr key={item.id} className={TROW}>
+                    <td className="px-5 py-3.5">
+                      <p className="text-sm font-bold text-foreground">{item.agencyName}</p>
+                      <p className="text-xs text-inactive">{item.user.name}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-sm text-gray-700">{item.user.email}</p>
-                      <p className="text-xs text-gray-500">{item.contactPhone}</p>
+                    <td className="px-5 py-3.5">
+                      <p className="text-sm text-foreground">{item.user.email}</p>
+                      <p className="text-xs text-inactive">{item.contactPhone}</p>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-700">
+                    <td className="px-5 py-3.5 text-sm text-foreground">
                       {item.city}, {item.state}
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">
-                      {formatDate(item.submittedAt)}
+                    <td className="px-5 py-3.5 text-sm text-inactive">{formatDate(item.submittedAt)}</td>
+                    <td className="px-5 py-3.5">
+                      <AccessBadge isActive={item.user.isActive} />
                     </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${accessBadge(item.user.isActive).className}`}
-                      >
-                        {accessBadge(item.user.isActive).label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <button
                         onClick={() => void openDetail(item.id)}
                         disabled={detailLoading}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 border border-gray-300 text-gray-700 hover:bg-background"
+                        className={`${BTN_GHOST} ${BTN_SM}`}
                       >
                         View
                       </button>
@@ -314,40 +301,32 @@ function ApplicationDetail({
     try {
       const { value } = await api.revealAgentNumber(application.id, field);
       setRevealed((prev) => ({ ...prev, [field]: value }));
-    } catch (error: any) {
-      onError(error.message || 'Failed to reveal number');
+    } catch (error) {
+      onError(errorText(error, 'Failed to reveal number'));
     }
   };
 
   const isActive = application.user.isActive;
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-up space-y-5">
       <button
         onClick={onBack}
-        className="text-sm font-medium text-gray-600 hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-sm font-bold text-links hover:underline"
       >
-        &larr; Back to list
+        <ArrowLeft className="h-4 w-4" /> Back to list
       </button>
 
-      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
-        <div className="flex items-start justify-between gap-4 mb-6">
+      <div className={`p-5 sm:p-6 ${CARD}`}>
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-foreground">
-              {application.agencyName}
-            </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Registered {formatDate(application.submittedAt)}
-            </p>
+            <h2 className="text-xl font-extrabold text-foreground">{application.agencyName}</h2>
+            <p className="mt-0.5 text-sm text-inactive">Registered {formatDate(application.submittedAt)}</p>
           </div>
-          <span
-            className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border shrink-0 ${accessBadge(isActive).className}`}
-          >
-            {accessBadge(isActive).label}
-          </span>
+          <AccessBadge isActive={isActive} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
           <Field label="Contact person" value={application.user.name} />
           <Field
             label="Email"
@@ -368,7 +347,7 @@ function ApplicationDetail({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mt-6 pt-6 border-t border-tertiary-button">
+        <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 border-t border-tertiary-button pt-6 md:grid-cols-2">
           <RevealableField
             label="PAN"
             masked={application.panNumberMasked}
@@ -384,49 +363,34 @@ function ApplicationDetail({
         </div>
       </div>
 
-      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-1">Documents</h3>
-        <p className="text-xs text-gray-500 mb-4">
-          Opening a document is recorded in the audit log.
-        </p>
+      <div className={`p-5 sm:p-6 ${CARD}`}>
+        <SectionTitle>Documents</SectionTitle>
+        <p className="-mt-2 mb-4 text-xs text-inactive">Opening a document is recorded in the audit log.</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {application.documents.map((doc) => (
-            <DocumentCard
-              key={doc.id}
-              applicationId={application.id}
-              doc={doc}
-              onError={onError}
-            />
+            <DocumentCard key={doc.id} applicationId={application.id} doc={doc} onError={onError} />
           ))}
         </div>
       </div>
 
       {application.rejectionReason && (
-        <div className="bg-red-500/5 border border-red-200 rounded-xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-red-700 mb-1">
-            Previous rejection reason
-          </p>
-          <p className="text-sm text-gray-700">{application.rejectionReason}</p>
+        <div className="rounded-2xl border border-danger/30 bg-danger/5 p-5">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-danger">Previous rejection reason</p>
+          <p className="text-sm text-foreground">{application.rejectionReason}</p>
         </div>
       )}
 
-      <div className="bg-peace border border-tertiary-button rounded-xl shadow-sm p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Audit trail</h3>
+      <div className={`p-5 sm:p-6 ${CARD}`}>
+        <SectionTitle>Audit trail</SectionTitle>
         <ol className="space-y-3">
           {application.events.map((event) => (
             <li key={event.id} className="flex gap-3 text-sm">
-              <span className="text-gray-400 shrink-0 w-28">
-                {formatDate(event.createdAt)}
-              </span>
-              <span className="text-gray-700">
-                <strong className="text-foreground">{event.action}</strong>
-                {event.actor && (
-                  <span className="text-gray-500"> by {event.actor.name}</span>
-                )}
-                {event.note && (
-                  <span className="block text-gray-500 mt-0.5">{event.note}</span>
-                )}
+              <span className="w-28 shrink-0 text-inactive">{formatDate(event.createdAt)}</span>
+              <span className="text-foreground">
+                <strong className="font-bold text-foreground">{event.action}</strong>
+                {event.actor && <span className="text-inactive"> by {event.actor.name}</span>}
+                {event.note && <span className="mt-0.5 block text-inactive">{event.note}</span>}
               </span>
             </li>
           ))}
@@ -434,31 +398,21 @@ function ApplicationDetail({
       </div>
 
       {!canDecide ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-inactive">
           You have read-only access to Booking Partners, so you cannot change this
           partner's access.
         </p>
       ) : isActive ? (
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-gray-500">
-            This partner is active and can sign in.
-          </p>
-          <button
-            onClick={() => onAccessChange(application, 'revoke')}
-            className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-peace text-sm font-semibold transition-colors"
-          >
+        <div className={`flex flex-wrap items-center justify-between gap-4 p-5 ${CARD}`}>
+          <p className="text-sm text-inactive">This partner is active and can sign in.</p>
+          <button onClick={() => onAccessChange(application, 'revoke')} className={BTN_DANGER}>
             Revoke access
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-sm text-gray-500">
-            This partner's access is revoked - they cannot sign in.
-          </p>
-          <button
-            onClick={() => onAccessChange(application, 'restore')}
-            className="px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-peace text-sm font-semibold transition-colors"
-          >
+        <div className={`flex flex-wrap items-center justify-between gap-4 p-5 ${CARD}`}>
+          <p className="text-sm text-inactive">This partner's access is revoked - they cannot sign in.</p>
+          <button onClick={() => onAccessChange(application, 'restore')} className={BTN_SUCCESS}>
             Restore access
           </button>
         </div>
@@ -504,8 +458,8 @@ function DocumentCard({
       // these are multi-megabyte scans and would otherwise be pinned in memory
       // for the life of the page.
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    } catch (error: any) {
-      onError(error.message || 'Failed to open document');
+    } catch (error) {
+      onError(errorText(error, 'Failed to open document'));
     } finally {
       setOpening(false);
     }
@@ -515,13 +469,18 @@ function DocumentCard({
     <button
       onClick={() => void open()}
       disabled={opening}
-      className="flex flex-col items-start gap-1 px-4 py-3 rounded-lg border border-tertiary-button bg-background hover:border-blue-300 hover:bg-background transition-colors text-left disabled:opacity-50"
+      className={`group flex items-center gap-3 px-4 py-3 text-left disabled:opacity-50 ${CARD_LINK}`}
     >
-      <span className="text-sm font-medium text-foreground">
-        {DOC_LABELS[doc.type] ?? doc.type}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-links">
+        <FileText className="h-4 w-4" />
       </span>
-      <span className="text-xs text-gray-500">
-        {opening ? 'Opening…' : `${Math.round(doc.sizeBytes / 1024)} KB`}
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-bold text-foreground group-hover:text-links">
+          {DOC_LABELS[doc.type] ?? doc.type}
+        </span>
+        <span className="block text-xs text-inactive">
+          {opening ? 'Opening…' : `${Math.round(doc.sizeBytes / 1024)} KB`}
+        </span>
       </span>
     </button>
   );
@@ -538,11 +497,9 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-        {label}
-      </p>
-      <p className="text-sm text-foreground">{value}</p>
-      {hint && <p className="text-xs text-amber-700 mt-0.5">{hint}</p>}
+      <p className={`mb-1 ${LABEL}`}>{label}</p>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
+      {hint && <p className="mt-0.5 text-xs font-semibold text-amber-700">{hint}</p>}
     </div>
   );
 }
@@ -560,16 +517,11 @@ function RevealableField({
 }) {
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-        {label}
-      </p>
+      <p className={`mb-1 ${LABEL}`}>{label}</p>
       <div className="flex items-center gap-3">
-        <p className="text-sm font-mono text-foreground">{revealed ?? masked}</p>
+        <p className="font-mono text-sm text-foreground">{revealed ?? masked}</p>
         {!revealed && (
-          <button
-            onClick={onReveal}
-            className="text-xs font-medium text-links hover:text-blue-800"
-          >
+          <button onClick={onReveal} className="text-xs font-bold text-links hover:underline">
             Reveal
           </button>
         )}

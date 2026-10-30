@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { BadgePercent, Plus } from 'lucide-react';
+import { BadgePercent, CheckCircle2, Layers, Plus } from 'lucide-react';
 import {
   api,
   type ServiceCommission,
@@ -7,11 +7,10 @@ import {
   type CommissionType,
   type CommissionAudience,
 } from '../lib/api';
-import { Alert, Badge, EmptyState, PageHeader, Spinner, Tabs } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner, Tabs } from '../components/ui';
 import {
   BTN_GHOST,
   BTN_PRIMARY,
-  CARD,
   CHECKBOX,
   FIELD_LABEL,
   INPUT,
@@ -197,6 +196,7 @@ export default function Commissions() {
     );
 
   const servicesWithRates = SERVICE_TYPES.filter((svc) => grouped[svc]?.length);
+  const tabRates = commissions.filter((c) => c.audience === activeTab);
 
   return (
     <div className={PAGE}>
@@ -205,30 +205,37 @@ export default function Commissions() {
         title="Commission Rates"
         subtitle="Set markup rates for each service. Commission is added to the base price shown to customers."
         actions={
-          !showForm && (
-            <button
-              onClick={() => {
-                setFormAudience(activeTab);
-                setShowForm(true);
-                setMessage(null);
-              }}
-              className={BTN_PRIMARY}
-            >
-              <Plus className="h-4 w-4" /> Add Rate
-            </button>
-          )
+          <>
+            {/* Audience tabs */}
+            <Tabs
+              label="Audience"
+              variant="glass"
+              active={activeTab}
+              onChange={setActiveTab}
+              options={AUDIENCE_ORDER.map((aud) => ({ key: aud, label: AUDIENCE_LABELS[aud] }))}
+            />
+            {!showForm && (
+              <button
+                onClick={() => {
+                  setFormAudience(activeTab);
+                  setShowForm(true);
+                  setMessage(null);
+                }}
+                className={BTN_PRIMARY}
+              >
+                <Plus className="h-4 w-4" /> Add Rate
+              </button>
+            )}
+          </>
+        }
+        stats={
+          <>
+            <HeroStat icon={BadgePercent} label={`${activeTab} rates`} value={loading ? null : tabRates.length} />
+            <HeroStat icon={CheckCircle2} label="Active rates" value={loading ? null : tabRates.filter((c) => c.isActive).length} />
+            <HeroStat icon={Layers} label="Services covered" value={loading ? null : `${servicesWithRates.length} of ${SERVICE_TYPES.length}`} />
+          </>
         }
       />
-
-      {/* Audience tabs */}
-      <div className="mb-6">
-        <Tabs
-          label="Audience"
-          active={activeTab}
-          onChange={setActiveTab}
-          options={AUDIENCE_ORDER.map((aud) => ({ key: aud, label: AUDIENCE_LABELS[aud] }))}
-        />
-      </div>
 
       {message && (
         <div className="mb-4">
@@ -240,10 +247,7 @@ export default function Commissions() {
 
       {/* Form */}
       {showForm && (
-        <div className={`animate-fade-up mb-6 p-5 sm:p-6 ${CARD}`}>
-          <h2 className="mb-4 text-lg font-extrabold text-foreground">
-            {editingId ? 'Edit Commission Rate' : 'New Commission Rate'}
-          </h2>
+        <Panel title={editingId ? 'Edit Commission Rate' : 'New Commission Rate'} className="animate-fade-up mb-6">
           <form onSubmit={handleSubmit}>
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Service Type */}
@@ -358,38 +362,44 @@ export default function Commissions() {
               </button>
             </div>
           </form>
-        </div>
+        </Panel>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className={CARD}>
+        <Panel title="Commission rates" flush>
           <Spinner label="Loading commission rates…" />
-        </div>
+        </Panel>
       )}
 
       {/* Empty state for the active tab */}
       {!loading && servicesWithRates.length === 0 && (
-        <div className={CARD}>
+        <Panel title="Commission rates" flush>
           <EmptyState
             icon={BadgePercent}
             title={`No ${AUDIENCE_LABELS[activeTab]} commission rates configured yet.`}
             message='Click "+ Add Rate" to get started.'
           />
-        </div>
+        </Panel>
       )}
 
       {/* Commission tables for the active tab (audience), grouped by service */}
       {!loading &&
         servicesWithRates.map((serviceType) => {
           const items = grouped[serviceType];
+          const activeCount = items.filter((c) => c.isActive).length;
           return (
-            <div key={serviceType} className="mb-6">
-              <div className="mb-3 flex items-center gap-2">
-                <Badge tone={serviceTone[serviceType]}>{SERVICE_LABELS[serviceType]}</Badge>
-              </div>
-
-              <div className={`overflow-hidden ${CARD}`}>
+            <Panel
+              key={serviceType}
+              title={SERVICE_LABELS[serviceType]}
+              aside={
+                <Badge tone={serviceTone[serviceType]} dot>
+                  {activeCount} of {items.length} active
+                </Badge>
+              }
+              flush
+              className="mb-6"
+            >
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px]">
                     <thead className={TABLE_HEAD}>
@@ -445,8 +455,7 @@ export default function Commissions() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </div>
+            </Panel>
           );
         })}
     </div>

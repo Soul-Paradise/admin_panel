@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MessageSquareQuote } from 'lucide-react';
+import { Clock, FileText, MessageSquareQuote } from 'lucide-react';
 import { api, type Testimonial } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
-import { Alert, Badge, EmptyState, PageHeader, Pagination, Spinner, Tabs } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner, Tabs } from '../components/ui';
 import { BTN_DANGER, BTN_GHOST, BTN_SM, BTN_SUCCESS, CARD, PAGE } from '../lib/ui-styles';
 
 type TabKey = 'pending' | 'approved' | 'all';
@@ -44,6 +44,7 @@ export default function Reviews() {
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<Testimonial[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [tabTotal, setTabTotal] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -70,10 +71,12 @@ export default function Reviews() {
       });
       setItems(res.data);
       setTotalPages(Math.max(1, res.pagination.totalPages));
+      setTabTotal(res.pagination.total);
     } catch (err) {
       setMessage({ type: 'error', text: errorText(err, 'Failed to load reviews') });
       setItems([]);
       setTotalPages(1);
+      setTabTotal(0);
     } finally {
       setLoading(false);
     }
@@ -139,7 +142,32 @@ export default function Reviews() {
         eyebrow="Content"
         title="Reviews"
         subtitle="Moderate customer testimonials"
-        actions={!writable ? <Badge tone="slate">Read-only access</Badge> : undefined}
+        note={!writable ? 'Read-only access' : undefined}
+        actions={
+          /* Filter tabs - the pending count only shows while there's something to moderate. */
+          <Tabs
+            label="Filter reviews"
+            variant="glass"
+            active={tab}
+            onChange={selectTab}
+            options={TABS.map((t) => ({
+              key: t.key,
+              label: t.label,
+              count: t.key === 'pending' && pendingCount !== null && pendingCount > 0 ? pendingCount : undefined,
+            }))}
+          />
+        }
+        stats={
+          <>
+            <HeroStat icon={Clock} label="Pending" value={pendingCount === null ? null : pendingCount.toLocaleString('en-IN')} />
+            <HeroStat
+              icon={FileText}
+              label={`${TABS.find((t) => t.key === tab)?.label ?? ''} reviews`}
+              value={loading || tabTotal === null ? null : tabTotal.toLocaleString('en-IN')}
+            />
+            <HeroStat icon={MessageSquareQuote} label="Page" value={loading ? null : `${page} of ${totalPages}`} />
+          </>
+        }
       />
 
       {message && (
@@ -148,33 +176,18 @@ export default function Reviews() {
         </div>
       )}
 
-      {/* Filter tabs - the pending count only shows while there's something to moderate. */}
-      <div className="mb-5">
-        <Tabs
-          label="Filter reviews"
-          active={tab}
-          onChange={selectTab}
-          options={TABS.map((t) => ({
-            key: t.key,
-            label: t.label,
-            count: t.key === 'pending' && pendingCount !== null && pendingCount > 0 ? pendingCount : undefined,
-          }))}
-        />
-      </div>
-
-      {/* List */}
+      <Panel
+        title="Reviews"
+        aside={tabTotal !== null && !loading ? <Badge tone="blue">{tabTotal.toLocaleString('en-IN')}</Badge> : undefined}
+      >
       {loading ? (
-        <div className={CARD}>
-          <Spinner label="Loading reviews…" />
-        </div>
+        <Spinner label="Loading reviews…" />
       ) : items.length === 0 ? (
-        <div className={CARD}>
-          <EmptyState icon={MessageSquareQuote} title="Nothing here" message={EMPTY_COPY[tab]} />
-        </div>
+        <EmptyState icon={MessageSquareQuote} title="Nothing here" message={EMPTY_COPY[tab]} />
       ) : (
         <div className="space-y-3">
           {items.map((t) => (
-            <div key={t.id} className={`p-5 transition-colors hover:border-links/30 ${CARD}`}>
+            <div key={t.id} className="rounded-2xl border border-tertiary-button bg-peace p-5 transition-colors hover:border-links/30">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -220,6 +233,7 @@ export default function Reviews() {
           ))}
         </div>
       )}
+      </Panel>
 
       {!loading && totalPages > 1 && (
         <div className={`mt-5 overflow-hidden ${CARD}`}>

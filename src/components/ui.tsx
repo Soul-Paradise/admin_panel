@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { BTN_GHOST, BTN_SM, CARD, CARD_LINK, GRADIENTS, LABEL, TONES, type Accent, type Tone } from '../lib/ui-styles';
+import { BTN_GHOST, BTN_SM, CARD, CARD_LINK, GRADIENTS, LABEL, TONES, heroImageFor, type Accent, type Tone } from '../lib/ui-styles';
 
 /**
  * The admin panel's building blocks, styled exactly like the customer site
@@ -49,34 +49,117 @@ export function Alert({
 }
 
 // ---------------------------------------------------------------------------
-// Page header (the site's SectionHeader)
+// Page hero (the site's photo heroes; shared by every admin page)
 // ---------------------------------------------------------------------------
 
+/**
+ * Photo banner at the top of every page: section photo under a navy fade, the
+ * footer's brand stripe, sky eyebrow, white title. Controls in `actions` sit on
+ * the dark photo, so pass `variant="glass"` to Tabs used there.
+ */
 export function PageHeader({
   eyebrow = 'Admin panel',
+  section,
   title,
   subtitle,
   actions,
   note,
+  image,
+  stats,
+  children,
 }: {
-  eyebrow?: string;
+  eyebrow?: ReactNode;
+  /** Picks the section photo; defaults to the eyebrow text. */
+  section?: string;
   title: ReactNode;
   subtitle?: ReactNode;
   /** Buttons on the right (wrap below the title on phones). */
   actions?: ReactNode;
-  /** Small extra line, e.g. "You have read-only access". */
+  /** Small extra line, e.g. "You have read-only access" (shown as a glass pill). */
   note?: ReactNode;
+  /** Override the section photo. */
+  image?: string;
+  /** Row of HeroStat cards under the title. */
+  stats?: ReactNode;
+  /** Anything else that belongs on the banner (badges, meta rows). */
+  children?: ReactNode;
+}) {
+  const src = image ?? heroImageFor(section ?? (typeof eyebrow === 'string' ? eyebrow : ''));
+  return (
+    <section className="animate-fade-up relative mb-6 overflow-hidden rounded-3xl shadow-xl shadow-ink/10 sm:mb-8">
+      <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/80 to-ink/30" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-links via-sky-400 to-accent-light" aria-hidden="true" />
+
+      <div className="relative px-5 py-6 sm:px-8 sm:py-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 max-w-2xl">
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-sky-300">{eyebrow}</p>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white sm:text-4xl">{title}</h1>
+            {subtitle && <p className="mt-2 text-sm leading-relaxed text-white/75 sm:text-base">{subtitle}</p>}
+            {note && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 ring-1 ring-white/15 backdrop-blur">
+                {note}
+              </p>
+            )}
+          </div>
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        </div>
+        {children}
+        {stats && <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{stats}</div>}
+      </div>
+    </section>
+  );
+}
+
+/** Frosted stat card for the hero banner (value null = loading). */
+export function HeroStat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode | null }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15 backdrop-blur">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">{label}</p>
+        {value === null ? (
+          <div className="mt-1.5 h-5 w-16 animate-pulse rounded-full bg-white/20" />
+        ) : (
+          <p className="truncate text-xl font-extrabold tabular-nums text-white">{value}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A titled white card - the dashboard's panels ("Bookings trend", "Recent
+ * sign-ups"). Every page lays its content out in these. `flush` drops the body
+ * padding for tables and lists that run edge to edge.
+ */
+export function Panel({
+  title,
+  aside,
+  children,
+  flush = false,
+  className = '',
+}: {
+  title?: ReactNode;
+  /** Right side of the title row: a count, a "View all" link, a search box. */
+  aside?: ReactNode;
+  children: ReactNode;
+  flush?: boolean;
+  className?: string;
 }) {
   return (
-    <header className="animate-fade-up mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
-      <div className="min-w-0 max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-links">{eyebrow}</p>
-        <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1.5 text-sm leading-relaxed text-inactive sm:text-base">{subtitle}</p>}
-        {note && <p className="mt-2 text-xs font-semibold text-inactive">{note}</p>}
-      </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </header>
+    <section className={`overflow-hidden ${CARD} ${className}`}>
+      {title && (
+        <div className={`flex flex-wrap items-center justify-between gap-2 px-5 pt-5 ${flush ? 'border-b border-tertiary-button pb-4' : ''}`}>
+          <h2 className="text-base font-extrabold text-foreground">{title}</h2>
+          {aside}
+        </div>
+      )}
+      <div className={flush ? '' : `px-5 pb-5 ${title ? 'pt-3' : 'pt-5'}`}>{children}</div>
+    </section>
   );
 }
 
@@ -99,14 +182,22 @@ export function Tabs<T extends string>({
   active,
   onChange,
   label = 'Filter',
+  variant = 'light',
 }: {
   options: readonly { key: T; label: ReactNode; count?: number }[];
   active: T;
   onChange: (key: T) => void;
   label?: string;
+  /** 'glass' for tabs sitting on a PageHeader photo. */
+  variant?: 'light' | 'glass';
 }) {
+  const glass = variant === 'glass';
   return (
-    <div role="tablist" aria-label={label} className="inline-flex max-w-full flex-wrap gap-1 rounded-full bg-slate-100 p-1">
+    <div
+      role="tablist"
+      aria-label={label}
+      className={`inline-flex max-w-full flex-wrap gap-1 rounded-full p-1 ${glass ? 'bg-white/10 ring-1 ring-white/15 backdrop-blur' : 'bg-slate-100'}`}
+    >
       {options.map((o) => {
         const isActive = o.key === active;
         return (
@@ -117,7 +208,11 @@ export function Tabs<T extends string>({
             aria-selected={isActive}
             onClick={() => onChange(o.key)}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
-              isActive ? 'bg-peace text-links shadow-sm' : 'text-inactive hover:text-foreground'
+              isActive
+                ? `${glass ? 'bg-white' : 'bg-peace'} text-links shadow-sm`
+                : glass
+                  ? 'text-white/75 hover:text-white'
+                  : 'text-inactive hover:text-foreground'
             }`}
           >
             {o.label}

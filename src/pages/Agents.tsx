@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, FileText, Handshake } from 'lucide-react';
+import { ArrowLeft, FileText, Handshake, UserCheck, UserX } from 'lucide-react';
 import {
   api,
   type AgentApplication,
@@ -7,7 +7,7 @@ import {
   type AgentListItem,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
-import { Alert, Badge, EmptyState, PageHeader, SectionTitle, Spinner, Tabs } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner, Tabs } from '../components/ui';
 import {
   BTN_DANGER,
   BTN_GHOST,
@@ -175,12 +175,36 @@ export default function Agents() {
     }
   };
 
+  const tabLabel = ACCESS_TABS.find((t) => t.id === tab)?.label ?? 'All';
+  const activeShown = items.filter((i) => i.user.isActive).length;
+
   return (
     <div className={PAGE}>
       <PageHeader
         eyebrow="Partners"
         title="Booking Partners"
         subtitle="Booking partners are active as soon as they register. Review their KYC details and revoke or restore access here."
+        note={!canDecide ? 'You have read-only access to Booking Partners.' : undefined}
+        actions={
+          <Tabs
+            variant="glass"
+            label="Partner access"
+            active={tab}
+            onChange={setTab}
+            options={ACCESS_TABS.map((t) => ({
+              key: t.id,
+              label: t.label,
+              count: t.id === 'REVOKED' && revokedCount > 0 ? revokedCount : undefined,
+            }))}
+          />
+        }
+        stats={
+          <>
+            <HeroStat icon={Handshake} label={`${tabLabel} partners`} value={loading ? null : items.length.toLocaleString('en-IN')} />
+            <HeroStat icon={UserCheck} label="Active in view" value={loading ? null : activeShown.toLocaleString('en-IN')} />
+            <HeroStat icon={UserX} label="Revoked" value={revokedCount.toLocaleString('en-IN')} />
+          </>
+        }
       />
 
       {message && (
@@ -191,19 +215,6 @@ export default function Agents() {
         </div>
       )}
 
-      <div className="mb-6">
-        <Tabs
-          label="Partner access"
-          active={tab}
-          onChange={setTab}
-          options={ACCESS_TABS.map((t) => ({
-            key: t.id,
-            label: t.label,
-            count: t.id === 'REVOKED' && revokedCount > 0 ? revokedCount : undefined,
-          }))}
-        />
-      </div>
-
       {selected ? (
         <ApplicationDetail
           application={selected}
@@ -212,19 +223,20 @@ export default function Agents() {
           onError={(text) => setMessage({ type: 'error', text })}
           canDecide={canDecide}
         />
-      ) : loading ? (
-        <div className={CARD}>
-          <Spinner label="Loading partners…" />
-        </div>
-      ) : items.length === 0 ? (
-        <div className={CARD}>
-          <EmptyState
-            icon={Handshake}
-            title={tab === 'REVOKED' ? 'No revoked partners.' : tab === 'ACTIVE' ? 'No active partners yet.' : 'Nothing here.'}
-          />
-        </div>
       ) : (
-        <div className={`overflow-hidden ${CARD}`}>
+        <Panel
+          title={`${tabLabel} partners`}
+          aside={!loading && <span className="text-xs font-semibold text-inactive">{items.length} shown</span>}
+          flush
+        >
+          {loading ? (
+            <Spinner label="Loading partners…" />
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={Handshake}
+              title={tab === 'REVOKED' ? 'No revoked partners.' : tab === 'ACTIVE' ? 'No active partners yet.' : 'Nothing here.'}
+            />
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px]">
               <thead className={TABLE_HEAD}>
@@ -268,7 +280,8 @@ export default function Agents() {
               </tbody>
             </table>
           </div>
-        </div>
+          )}
+        </Panel>
       )}
     </div>
   );
@@ -317,14 +330,8 @@ function ApplicationDetail({
         <ArrowLeft className="h-4 w-4" /> Back to list
       </button>
 
-      <div className={`p-5 sm:p-6 ${CARD}`}>
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-foreground">{application.agencyName}</h2>
-            <p className="mt-0.5 text-sm text-inactive">Registered {formatDate(application.submittedAt)}</p>
-          </div>
-          <AccessBadge isActive={isActive} />
-        </div>
+      <Panel title={application.agencyName} aside={<AccessBadge isActive={isActive} />}>
+        <p className="-mt-1 mb-5 text-sm text-inactive">Registered {formatDate(application.submittedAt)}</p>
 
         <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
           <Field label="Contact person" value={application.user.name} />
@@ -361,18 +368,15 @@ function ApplicationDetail({
             onReveal={() => void reveal('aadhaar')}
           />
         </div>
-      </div>
+      </Panel>
 
-      <div className={`p-5 sm:p-6 ${CARD}`}>
-        <SectionTitle>Documents</SectionTitle>
-        <p className="-mt-2 mb-4 text-xs text-inactive">Opening a document is recorded in the audit log.</p>
-
+      <Panel title="Documents" aside={<span className="text-xs text-inactive">Opening a document is recorded in the audit log.</span>}>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {application.documents.map((doc) => (
             <DocumentCard key={doc.id} applicationId={application.id} doc={doc} onError={onError} />
           ))}
         </div>
-      </div>
+      </Panel>
 
       {application.rejectionReason && (
         <div className="rounded-2xl border border-danger/30 bg-danger/5 p-5">
@@ -381,8 +385,7 @@ function ApplicationDetail({
         </div>
       )}
 
-      <div className={`p-5 sm:p-6 ${CARD}`}>
-        <SectionTitle>Audit trail</SectionTitle>
+      <Panel title="Audit trail">
         <ol className="space-y-3">
           {application.events.map((event) => (
             <li key={event.id} className="flex gap-3 text-sm">
@@ -395,7 +398,7 @@ function ApplicationDetail({
             </li>
           ))}
         </ol>
-      </div>
+      </Panel>
 
       {!canDecide ? (
         <p className="text-sm text-inactive">

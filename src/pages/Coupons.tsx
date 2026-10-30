@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, TicketPercent } from 'lucide-react';
+import { CheckCircle2, Plus, Repeat, TicketPercent } from 'lucide-react';
 import {
   api,
   type PromoCode,
@@ -9,11 +9,10 @@ import {
   type ServiceType,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
-import { Alert, Badge, EmptyState, PageHeader, SectionTitle, Spinner } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner } from '../components/ui';
 import {
   BTN_GHOST,
   BTN_PRIMARY,
-  CARD,
   FIELD_LABEL,
   INPUT,
   LINK_BTN,
@@ -249,6 +248,17 @@ export default function Coupons() {
             </button>
           )
         }
+        stats={
+          <>
+            <HeroStat icon={TicketPercent} label="Total coupons" value={loading ? null : coupons.length} />
+            <HeroStat icon={CheckCircle2} label="Active" value={loading ? null : coupons.filter((c) => c.isActive).length} />
+            <HeroStat
+              icon={Repeat}
+              label="Total redemptions"
+              value={loading ? null : coupons.reduce((sum, c) => sum + c.usageCount, 0).toLocaleString('en-IN')}
+            />
+          </>
+        }
       />
 
       {message && (
@@ -259,8 +269,7 @@ export default function Coupons() {
 
       {/* Form */}
       {editable && showForm && (
-        <div className={`animate-fade-up mb-6 p-5 sm:p-6 ${CARD}`}>
-          <SectionTitle>{editingId ? 'Edit Coupon' : 'New Coupon'}</SectionTitle>
+        <Panel title={editingId ? 'Edit Coupon' : 'New Coupon'} className="animate-fade-up mb-6">
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Code */}
@@ -438,16 +447,16 @@ export default function Coupons() {
               Cancel
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Coupons Table */}
       {loading ? (
-        <div className={CARD}>
+        <Panel title="All coupons" flush>
           <Spinner label="Loading coupons…" />
-        </div>
+        </Panel>
       ) : coupons.length === 0 ? (
-        <div className={CARD}>
+        <Panel title="All coupons" flush>
           <EmptyState
             icon={TicketPercent}
             title="No coupons yet"
@@ -460,9 +469,18 @@ export default function Coupons() {
               )
             }
           />
-        </div>
+        </Panel>
       ) : (
-        <div className={`overflow-x-auto ${CARD}`}>
+        <Panel
+          title="All coupons"
+          aside={
+            <span className="text-sm font-semibold text-inactive">
+              {coupons.length} coupon{coupons.length === 1 ? '' : 's'}
+            </span>
+          }
+          flush
+        >
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
             <thead className={TABLE_HEAD}>
               <tr className="border-b border-tertiary-button">
@@ -578,6 +596,7 @@ export default function Coupons() {
             </tbody>
           </table>
         </div>
+        </Panel>
       )}
     </div>
   );

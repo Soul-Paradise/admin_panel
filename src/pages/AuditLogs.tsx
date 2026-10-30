@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollText, Search } from 'lucide-react';
+import { Eye, ScrollText, Search, ShieldAlert } from 'lucide-react';
 import { api, type AdminPage, type AuditLogEntry } from '../lib/api';
-import { Alert, Badge, EmptyState, PageHeader, Pagination, Spinner } from '../components/ui';
-import { CARD, FIELD_LABEL, INPUT, LABEL, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Tone } from '../lib/ui-styles';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner } from '../components/ui';
+import { FIELD_LABEL, INPUT, LABEL, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Tone } from '../lib/ui-styles';
 
 const PAGE_LABELS: Record<AdminPage, string> = {
   DASHBOARD: 'Dashboard',
@@ -117,6 +117,9 @@ export default function AuditLogs() {
     }
   }, [message]);
 
+  // Denied or failed entries among the rows on this page.
+  const flagged = logs.filter((l) => l.action === 'ACCESS_DENIED' || l.statusCode >= 400).length;
+
   return (
     <div className={PAGE}>
       <PageHeader
@@ -124,6 +127,13 @@ export default function AuditLogs() {
         title="Audit Logs"
         subtitle="Every change made from the admin panel"
         note="This log is append-only - entries cannot be edited or deleted."
+        stats={
+          <>
+            <HeroStat icon={ScrollText} label="Total entries" value={loading ? null : total.toLocaleString('en-IN')} />
+            <HeroStat icon={Eye} label="Shown on this page" value={loading ? null : logs.length.toLocaleString('en-IN')} />
+            <HeroStat icon={ShieldAlert} label="Denied or errors (this page)" value={loading ? null : flagged.toLocaleString('en-IN')} />
+          </>
+        }
       />
 
       {message && (
@@ -133,7 +143,7 @@ export default function AuditLogs() {
       )}
 
       {/* Filters */}
-      <div className={`mb-4 p-4 ${CARD}`}>
+      <Panel title="Filters" className="mb-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
             <label className={FIELD_LABEL}>Search</label>
@@ -195,10 +205,18 @@ export default function AuditLogs() {
             </div>
           </div>
         </div>
-      </div>
+      </Panel>
 
       {/* Table */}
-      <div className={`overflow-hidden ${CARD}`}>
+      <Panel
+        title="Activity"
+        aside={
+          <span className="text-sm text-inactive">
+            <span className="font-bold text-foreground">{total.toLocaleString('en-IN')}</span> entr{total === 1 ? 'y' : 'ies'}
+          </span>
+        }
+        flush
+      >
         {loading ? (
           <Spinner label="Loading audit logs…" />
         ) : logs.length === 0 ? (
@@ -312,7 +330,7 @@ export default function AuditLogs() {
             />
           </>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

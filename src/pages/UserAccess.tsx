@@ -6,9 +6,9 @@ import {
   type AdminPage,
   type PageAccessMap,
 } from '../lib/api';
-import { ChevronDown, Search, ShieldAlert, UserX } from 'lucide-react';
+import { ChevronDown, PencilLine, Search, ShieldAlert, ShieldCheck, UserX, Users } from 'lucide-react';
 import { useAccess } from '../hooks/useAccess';
-import { Alert, Badge, EmptyState, PageHeader } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, SectionTitle } from '../components/ui';
 import { BTN_GHOST, BTN_PRIMARY, BTN_SM, CARD, INPUT, PAGE } from '../lib/ui-styles';
 
 type LevelKey = 'NONE' | AccessLevel;
@@ -243,7 +243,8 @@ export default function UserAccess() {
   if (!isSuperAdmin) {
     return (
       <div className={PAGE}>
-        <div className={`mx-auto mt-16 max-w-md p-8 text-center ${CARD}`}>
+        <PageHeader eyebrow="Security" title="User Access" subtitle="Choose what each admin can open." />
+        <div className={`mx-auto mt-4 max-w-md p-8 text-center ${CARD}`}>
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-tint text-links">
             <ShieldAlert className="h-7 w-7" strokeWidth={1.75} />
           </div>
@@ -255,14 +256,25 @@ export default function UserAccess() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8">
       <PageHeader
         eyebrow="Security"
         title="User Access"
         subtitle={
           <>
-            Choose what each admin can open. A section left at <strong className="font-bold text-foreground">None</strong> is
+            Choose what each admin can open. A section left at <strong className="font-bold text-white">None</strong> is
             hidden from their sidebar and refused by the API.
+          </>
+        }
+        stats={
+          <>
+            <HeroStat icon={Users} label="Admins" value={loading ? null : admins.length.toLocaleString('en-IN')} />
+            <HeroStat
+              icon={ShieldCheck}
+              label="Super admins"
+              value={loading ? null : admins.filter((a) => a.role === 'SUPER_ADMIN').length.toLocaleString('en-IN')}
+            />
+            <HeroStat icon={PencilLine} label="Unsaved changes" value={loading ? null : dirtyAdmins.length.toLocaleString('en-IN')} />
           </>
         }
       />
@@ -273,18 +285,31 @@ export default function UserAccess() {
         </div>
       )}
 
-      {admins.length > 4 && (
-        <div className="relative mb-4 sm:max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-inactive" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search admins by name or email…"
-            className={`${INPUT} pl-10`}
-          />
-        </div>
-      )}
+      <SectionTitle
+        aside={
+          <div className="flex flex-wrap items-center gap-3">
+            {admins.length > 4 && (
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-inactive" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search admins by name or email…"
+                  className={`${INPUT} pl-10`}
+                />
+              </div>
+            )}
+            {!loading && (
+              <span className="text-sm text-inactive">
+                <span className="font-bold text-foreground">{visible.length}</span> of {admins.length}
+              </span>
+            )}
+          </div>
+        }
+      >
+        Admins
+      </SectionTitle>
 
       {loading ? (
         <div className="space-y-4">
@@ -454,8 +479,8 @@ export default function UserAccess() {
       {/* Catches the case of editing several admins and forgetting to save the
           ones scrolled off screen. */}
       {dirtyAdmins.length > 1 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary-button bg-peace/95 px-4 py-3 shadow-[0_-4px_16px_rgba(14,34,56,0.06)] backdrop-blur-sm lg:left-64">
-          <div className="mx-auto flex max-w-5xl items-center gap-3">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary-button bg-peace/95 px-4 py-3 shadow-[0_-4px_16px_rgba(14,34,56,0.06)] backdrop-blur-sm lg:left-[var(--sidebar-w,17rem)]">
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
             <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground sm:text-sm">
               {dirtyAdmins.length} admins have unsaved changes
             </span>

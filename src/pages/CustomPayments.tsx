@@ -7,11 +7,8 @@ import {
   type PaymentStatus,
   type PaymentStatusGroup,
 } from '../lib/api';
-import { Alert, Badge, EmptyState, PageHeader, Pagination, Spinner, StatTile } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner, StatTile } from '../components/ui';
 import {
-  BTN_OUTLINE,
-  BTN_SM,
-  CARD,
   FIELD_LABEL,
   INPUT,
   PAGE,
@@ -158,10 +155,21 @@ export default function CustomPayments() {
         title="Custom Payments"
         subtitle={<>Payments customers made from the website&apos;s Custom Payment tab</>}
         actions={
-          <button onClick={() => load()} disabled={loading} className={`${BTN_OUTLINE} ${BTN_SM}`}>
+          <button
+            onClick={() => load()}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20 disabled:opacity-60"
+          >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+        }
+        stats={
+          <>
+            <HeroStat icon={CircleCheck} label="Received" value={data ? formatAmount(data.summary.received.amount) : null} />
+            <HeroStat icon={Clock} label="Pending" value={data ? data.summary.pending.count.toLocaleString('en-IN') : null} />
+            <HeroStat icon={Receipt} label="All payments" value={data ? data.summary.all.count.toLocaleString('en-IN') : null} />
+          </>
         }
       />
 
@@ -192,7 +200,7 @@ export default function CustomPayments() {
       </div>
 
       {/* Filters */}
-      <div className={`mb-4 p-4 sm:p-5 ${CARD}`}>
+      <Panel title="Filters" className="mb-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
             <label className={FIELD_LABEL}>Search</label>
@@ -232,19 +240,20 @@ export default function CustomPayments() {
             />
           </div>
         </div>
-      </div>
+      </Panel>
 
       {/* Table */}
+      <Panel
+        title="Payments"
+        aside={data ? <Badge tone="blue">{data.pagination.total.toLocaleString('en-IN')}</Badge> : undefined}
+        flush
+      >
       {loading && !data ? (
-        <div className={CARD}>
-          <Spinner label="Loading payments…" />
-        </div>
+        <Spinner label="Loading payments…" />
       ) : items.length === 0 ? (
-        <div className={CARD}>
-          <EmptyState icon={CreditCard} title="No payments found" message="No payments match these filters." />
-        </div>
+        <EmptyState icon={CreditCard} title="No payments found" message="No payments match these filters." />
       ) : (
-        <div className={`overflow-hidden ${CARD}`}>
+        <>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead className={TABLE_HEAD}>
@@ -303,8 +312,9 @@ export default function CustomPayments() {
             total={data?.pagination.total ?? 0}
             onPage={(p) => setPageNum(Math.min(totalPages, Math.max(1, p)))}
           />
-        </div>
+        </>
       )}
+      </Panel>
     </div>
   );
 }

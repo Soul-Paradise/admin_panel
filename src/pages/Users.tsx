@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Search, UserX } from 'lucide-react';
+import { ChevronRight, Filter, Search, UserCheck, UserX, Users as UsersIcon } from 'lucide-react';
 import { api, type User, type UserRole, type PaginatedUsers } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
-import { Alert, Badge, EmptyState, PageHeader, Pagination, Spinner } from '../components/ui';
-import { CARD, INPUT, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Tone } from '../lib/ui-styles';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Pagination, Panel, Spinner } from '../components/ui';
+import { INPUT, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Tone } from '../lib/ui-styles';
 
 const ROLES: UserRole[] = ['USER', 'AGENT', 'ADMIN'];
 
@@ -71,6 +71,8 @@ export default function Users() {
     }
   };
 
+  const activeOnPage = data?.users.filter((u) => u.isActive).length ?? 0;
+
   return (
     <div className={PAGE}>
       <PageHeader
@@ -78,6 +80,13 @@ export default function Users() {
         title="User Details"
         subtitle="Customer accounts and ticket history"
         note={!editable ? 'You have read-only access to this page.' : undefined}
+        stats={
+          <>
+            <HeroStat icon={UsersIcon} label={search || roleFilter ? 'Matching users' : 'Total users'} value={data ? data.pagination.total.toLocaleString('en-IN') : null} />
+            <HeroStat icon={UserCheck} label="Active on this page" value={data && !loading ? activeOnPage.toLocaleString('en-IN') : null} />
+            <HeroStat icon={Filter} label="Showing" value={roleFilter || 'All roles'} />
+          </>
+        }
       />
 
       {message && (
@@ -111,7 +120,11 @@ export default function Users() {
       </div>
 
       {/* Table */}
-      <div className={`overflow-hidden ${CARD}`}>
+      <Panel
+        title="All users"
+        aside={data && <span className="text-xs font-semibold text-inactive">{data.pagination.total} total</span>}
+        flush
+      >
         {loading ? (
           <Spinner label="Loading users…" />
         ) : !data?.users.length ? (
@@ -204,7 +217,7 @@ export default function Users() {
         {data && data.pagination.totalPages > 1 && (
           <Pagination page={page} totalPages={data.pagination.totalPages} total={data.pagination.total} onPage={setPage} />
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

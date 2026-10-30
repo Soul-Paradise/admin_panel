@@ -103,3 +103,25 @@ export const GRADIENTS = {
 } as const;
 
 export type Accent = keyof typeof GRADIENTS;
+
+// ---------------------------------------------------------------------------
+// Page hero photos (CC0 / public domain, GCS bucket static_hero_images)
+// ---------------------------------------------------------------------------
+
+const HERO_BASE = 'https://storage.googleapis.com/static_hero_images';
+
+/** One photo per section, like the customer site's per-page heroes. */
+export const HERO_IMAGES: Record<string, string> = {
+  dashboard: `${HERO_BASE}/maldives-island-coast.webp`,
+  people: `${HERO_BASE}/kerala-tea-gardens.webp`,
+  partners: `${HERO_BASE}/dubai-skyline.webp`,
+  pricing: `${HERO_BASE}/jaipur-jal-mahal.webp`,
+  promotions: `${HERO_BASE}/beach-sunset.webp`,
+  content: `${HERO_BASE}/agra-misty-morning.webp`,
+  payments: `${HERO_BASE}/ladakh-lake-reflection.webp`,
+  operations: `${HERO_BASE}/wing-above-clouds.webp`,
+  security: `${HERO_BASE}/kanchenjunga.webp`,
+};
+
+/** The hero photo for a section eyebrow ("People", "Security", ...). */
+export const heroImageFor = (section: string) => HERO_IMAGES[section.trim().toLowerCase()] ?? HERO_IMAGES.dashboard;

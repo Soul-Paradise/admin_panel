@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Tag } from 'lucide-react';
+import { CheckCircle2, LayoutGrid, Plus, Tag } from 'lucide-react';
 import { api, type Offer, type OfferCategory, type ColorTheme } from '../lib/api';
-import { Alert, Badge, EmptyState, PageHeader, SectionTitle, Spinner } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner } from '../components/ui';
 import {
   BTN_GHOST,
   BTN_PRIMARY,
-  CARD,
   FIELD_LABEL,
   GRADIENTS,
   INPUT,
@@ -189,6 +188,13 @@ export default function Offers() {
             <Plus className="h-4 w-4" /> New Offer
           </button>
         }
+        stats={
+          <>
+            <HeroStat icon={Tag} label="Total offers" value={loading ? null : offers.length} />
+            <HeroStat icon={CheckCircle2} label="Active" value={loading ? null : offers.filter((o) => o.isActive).length} />
+            <HeroStat icon={LayoutGrid} label="Categories" value={loading ? null : new Set(offers.map((o) => o.category)).size} />
+          </>
+        }
       />
 
       {message && (
@@ -199,8 +205,7 @@ export default function Offers() {
 
       {/* Form */}
       {showForm && (
-        <div className={`animate-fade-up mb-6 p-5 sm:p-6 ${CARD}`}>
-          <SectionTitle>{editingId ? 'Edit Offer' : 'New Offer'}</SectionTitle>
+        <Panel title={editingId ? 'Edit Offer' : 'New Offer'} className="animate-fade-up mb-6">
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Title */}
@@ -315,16 +320,16 @@ export default function Offers() {
               Cancel
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Offers Table */}
       {loading ? (
-        <div className={CARD}>
+        <Panel title="All offers" flush>
           <Spinner label="Loading offers…" />
-        </div>
+        </Panel>
       ) : offers.length === 0 ? (
-        <div className={CARD}>
+        <Panel title="All offers" flush>
           <EmptyState
             icon={Tag}
             title="No offers yet"
@@ -335,9 +340,18 @@ export default function Offers() {
               </button>
             }
           />
-        </div>
+        </Panel>
       ) : (
-        <div className={`overflow-x-auto ${CARD}`}>
+        <Panel
+          title="All offers"
+          aside={
+            <span className="text-sm font-semibold text-inactive">
+              {offers.length} offer{offers.length === 1 ? '' : 's'}
+            </span>
+          }
+          flush
+        >
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
             <thead className={TABLE_HEAD}>
               <tr className="border-b border-tertiary-button">
@@ -402,6 +416,7 @@ export default function Offers() {
             </tbody>
           </table>
         </div>
+        </Panel>
       )}
     </div>
   );

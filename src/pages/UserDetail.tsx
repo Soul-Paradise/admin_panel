@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Building2, ChevronLeft, Handshake, Plane, ReceiptText, ShieldCheck, Ticket, Wallet } from 'lucide-react';
+import { Building2, ChevronLeft, Clock, Handshake, Plane, ReceiptText, ShieldCheck, Ticket, Wallet } from 'lucide-react';
 import {
   api,
   type UserDetail as UserDetailData,
@@ -9,7 +9,7 @@ import {
   type UserRole,
   type AgentStatus,
 } from '../lib/api';
-import { Alert, Badge, EmptyState, IconTile, SectionTitle, Spinner, StatTile, Tabs } from '../components/ui';
+import { Alert, Badge, EmptyState, HeroStat, IconTile, PageHeader, Panel, Spinner, StatTile, Tabs } from '../components/ui';
 import { CARD, LABEL, PAGE, type Accent, type Tone } from '../lib/ui-styles';
 
 const roleTone: Record<UserRole, Tone> = {
@@ -198,7 +198,7 @@ export default function UserDetail() {
   const backLink = (
     <button
       onClick={() => navigate('/users')}
-      className="group mb-6 inline-flex items-center gap-1 text-sm font-bold text-links transition-opacity hover:opacity-80"
+      className="group inline-flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20"
     >
       <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
       Back to users
@@ -208,7 +208,7 @@ export default function UserDetail() {
   if (loading) {
     return (
       <div className={PAGE}>
-        {backLink}
+        <PageHeader eyebrow="People" title="User details" subtitle="Loading user…" actions={backLink} />
         <div className={CARD}>
           <Spinner label="Loading user…" />
         </div>
@@ -219,7 +219,7 @@ export default function UserDetail() {
   if (error || !data) {
     return (
       <div className={PAGE}>
-        {backLink}
+        <PageHeader eyebrow="People" title="User details" actions={backLink} />
         <Alert tone="error">{error ?? 'User not found'}</Alert>
       </div>
     );
@@ -237,79 +237,66 @@ export default function UserDetail() {
 
   return (
     <div className={PAGE}>
-      {backLink}
-
       {/* Profile header */}
-      <div className={`animate-fade-up mb-6 p-6 ${CARD}`}>
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-button text-2xl font-bold text-peace ring-4 ring-primary-tint">
-            {user.profilePicture ? (
-              <img src={user.profilePicture} alt="" className="h-16 w-16 rounded-full object-cover" />
-            ) : (
-              user.name?.charAt(0).toUpperCase()
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-links">People</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground">{user.name}</h1>
-              <Badge tone={roleTone[user.role] ?? 'slate'}>{user.role}</Badge>
-              <Badge tone={user.emailVerified ? 'green' : 'slate'}>{user.emailVerified ? 'Verified' : 'Unverified'}</Badge>
-              <Badge tone={user.isActive ? 'green' : 'red'} dot>
-                {user.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <p className="mt-1 truncate text-sm text-inactive">{user.email}</p>
-
-            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-tertiary-button pt-4 md:grid-cols-3">
-              <Field label="Provider" value={user.provider?.toLowerCase() ?? '-'} />
-              <Field label="Joined" value={formatDate(user.createdAt)} />
-              <Field label="Last Login" value={user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'} />
-            </div>
-          </div>
+      <PageHeader
+        eyebrow="People"
+        title={user.name}
+        subtitle={user.email}
+        actions={backLink}
+        stats={
+          <>
+            <HeroStat icon={Ticket} label="Total bookings" value={String(summary.total)} />
+            <HeroStat icon={Wallet} label="Total spent" value={money(summary.totalSpent)} />
+            <HeroStat icon={Clock} label="Last login" value={user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'} />
+          </>
+        }
+      >
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Badge tone={roleTone[user.role] ?? 'slate'}>{user.role}</Badge>
+          <Badge tone={user.emailVerified ? 'green' : 'slate'}>{user.emailVerified ? 'Verified' : 'Unverified'}</Badge>
+          <Badge tone={user.isActive ? 'green' : 'red'} dot>
+            {user.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+          <span className="ml-1 text-xs font-semibold text-white/75">
+            Provider <span className="capitalize text-white">{user.provider?.toLowerCase() ?? '-'}</span> · Joined{' '}
+            <span className="text-white">{formatDate(user.createdAt)}</span> · Last login{' '}
+            <span className="text-white">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}</span>
+          </span>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Booking partner */}
       {user.agentProfile && (
-        <div className={`mb-6 p-5 ${CARD}`}>
-          <p className={`mb-3 ${LABEL}`}>Booking Partner</p>
+        <Panel title="Booking Partner" className="mb-6">
           <div className="flex flex-wrap items-center gap-3">
             <IconTile icon={Handshake} accent="orange" size="sm" />
             <p className="text-sm font-bold text-foreground">{user.agentProfile.agencyName}</p>
             <Badge tone={agentStatusTone[user.agentProfile.status] ?? 'slate'}>{user.agentProfile.status.replace('_', ' ')}</Badge>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Summary */}
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
         {stats.map((stat) => (
           <StatTile key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} accent={stat.accent} />
         ))}
       </div>
 
       {/* Ticket history */}
-      <SectionTitle aside={<Tabs label="Filter bookings" options={FILTERS} active={filter} onChange={setFilter} />}>
-        Ticket History
-      </SectionTitle>
-
-      {data.bookings.length === 0 ? (
-        <div className={CARD}>
+      <Panel title="Ticket History" aside={<Tabs label="Filter bookings" options={FILTERS} active={filter} onChange={setFilter} />}>
+        {data.bookings.length === 0 ? (
           <EmptyState icon={ReceiptText} title="No bookings yet" message="This user hasn't booked anything yet." />
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className={CARD}>
+        ) : bookings.length === 0 ? (
           <EmptyState icon={ReceiptText} title="Nothing here" message="No bookings in this category." />
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((booking) => (
-            <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className="space-y-3">
+            {bookings.map((booking) => (
+              <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

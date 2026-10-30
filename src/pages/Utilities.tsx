@@ -13,8 +13,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { api, type AnalyticsOverview } from '../lib/api';
-import { Alert, EmptyState, PageHeader, SectionTitle, StatTile, Tabs } from '../components/ui';
-import { CARD, LABEL, PAGE, TABLE_HEAD, TBODY, TH, TROW, type Accent } from '../lib/ui-styles';
+import { Alert, EmptyState, HeroStat, PageHeader, Panel, SectionTitle, StatTile, Tabs } from '../components/ui';
+import { CARD, PAGE, TABLE_HEAD, TBODY, TH, TROW, type Accent } from '../lib/ui-styles';
 
 type RangeKey = 'today' | '7d' | '30d';
 
@@ -52,8 +52,7 @@ function BreakdownCard({
   rows: { label: string; value: string | number; tone?: string }[];
 }) {
   return (
-    <div className={`p-4 ${CARD}`}>
-      <p className={`mb-3 ${LABEL}`}>{title}</p>
+    <Panel title={title}>
       <div className="divide-y divide-tertiary-button/70">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
@@ -62,7 +61,7 @@ function BreakdownCard({
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -107,7 +106,14 @@ export default function Utilities() {
         eyebrow="Operations"
         title="Utilities"
         subtitle="Operational stats at a glance"
-        actions={<Tabs options={RANGES} active={range} onChange={setRange} label="Date range" />}
+        actions={<Tabs options={RANGES} active={range} onChange={setRange} label="Date range" variant="glass" />}
+        stats={
+          <>
+            <HeroStat icon={BadgeIndianRupee} label="Revenue" value={overview ? money(overview.bookings.totalRevenue) : null} />
+            <HeroStat icon={CalendarCheck} label="Bookings" value={overview ? overview.bookings.totalCount.toLocaleString('en-IN') : null} />
+            <HeroStat icon={UserPlus} label="New users" value={overview ? overview.users.newInRange.toLocaleString('en-IN') : null} />
+          </>
+        }
       />
 
       {error && (
@@ -205,7 +211,8 @@ export default function Utilities() {
               <div className="md:col-span-1" />
             </div>
 
-            <div className={`mt-4 overflow-x-auto ${CARD}`}>
+            <Panel title="Top coupon codes" flush className="mt-4">
+              <div className="overflow-x-auto">
               {overview.coupons.topCodes.length === 0 ? (
                 <EmptyState icon={TicketPercent} title="No coupon redemptions recorded." />
               ) : (
@@ -228,7 +235,8 @@ export default function Utilities() {
                   </tbody>
                 </table>
               )}
-            </div>
+              </div>
+            </Panel>
           </Section>
 
           <Section title="Operational">
@@ -281,10 +289,12 @@ export default function Utilities() {
           </Section>
 
           {/* Daily bookings chart */}
-          <Section title="Daily bookings">
-            <div className={`p-5 ${CARD}`}>
-              {/* Legend */}
-              <div className="mb-5 flex flex-wrap items-center gap-4">
+          <Panel
+            title="Daily bookings"
+            className="mt-8"
+            aside={
+              /* Legend */
+              <div className="flex flex-wrap items-center gap-4">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-inactive">
                   <span className="h-2.5 w-2.5 rounded-full bg-links" /> Flights
                 </span>
@@ -295,6 +305,8 @@ export default function Utilities() {
                   <span className="h-2.5 w-2.5 rounded-full bg-purple-500" /> Insurance
                 </span>
               </div>
+            }
+          >
 
               {daily.length === 0 ? (
                 <EmptyState icon={BarChart3} title="No bookings in this range." />
@@ -332,8 +344,7 @@ export default function Utilities() {
                   </div>
                 </div>
               )}
-            </div>
-          </Section>
+          </Panel>
         </>
       )}
     </div>

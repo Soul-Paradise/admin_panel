@@ -10,6 +10,7 @@ import {
   type OrderStatusGroup,
 } from '../lib/api';
 import { Alert, Badge, EmptyState, HeroStat, IconTile, PageHeader, Pagination, Panel, Spinner } from '../components/ui';
+import { OrderDetailModal } from '../components/OrderDetail';
 import { FIELD_LABEL, INPUT, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Accent, type Tone } from '../lib/ui-styles';
 
 const LIMIT = 25;
@@ -81,6 +82,7 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [viewing, setViewing] = useState<{ service: OrderService; bookingId: string } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -220,6 +222,9 @@ export default function Orders() {
                     <th className={TH}>Status</th>
                     <th className={`${TH} !text-right`}>Paid</th>
                     <th className={`${TH} !text-right`}>Commission</th>
+                    <th className={TH}>
+                      <span className="sr-only">Details</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className={`${TBODY} ${loading ? 'opacity-60' : ''}`}>
@@ -232,7 +237,13 @@ export default function Orders() {
                           <div className="flex items-start gap-2.5">
                             <IconTile icon={svc.icon} accent={svc.accent} size="sm" />
                             <div className="min-w-0">
-                              <div className="font-mono text-xs font-bold whitespace-nowrap text-foreground">{o.bookingId}</div>
+                              <button
+                                type="button"
+                                onClick={() => setViewing({ service: o.service, bookingId: o.bookingId })}
+                                className="font-mono text-xs font-bold whitespace-nowrap text-foreground hover:text-links hover:underline"
+                              >
+                                {o.bookingId}
+                              </button>
                               <div className="text-[11px] text-inactive">
                                 {svc.label}
                                 {o.reference ? ` · ${o.reference}` : ''}
@@ -268,6 +279,15 @@ export default function Orders() {
                         <td className="px-5 py-3.5 text-right whitespace-nowrap" data-testid="order-commission">
                           <CommissionCell order={o} />
                         </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setViewing({ service: o.service, bookingId: o.bookingId })}
+                            className="rounded-full px-3 py-1 text-xs font-bold text-links ring-1 ring-tertiary-button hover:bg-primary-tint/50"
+                          >
+                            View
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -284,6 +304,8 @@ export default function Orders() {
           </>
         )}
       </Panel>
+
+      {viewing && <OrderDetailModal service={viewing.service} bookingId={viewing.bookingId} onClose={() => setViewing(null)} />}
     </div>
   );
 }

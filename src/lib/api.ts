@@ -465,6 +465,46 @@ export interface AdminOrder {
   user: { id: string; name: string; email: string; role: string };
 }
 
+/** Everything stored about one booking (admin debugging view). */
+export interface AdminOrderDetail {
+  service: OrderService;
+  statusGroup: OrderStatusGroup;
+  /** The booking row (columns) plus the customer. */
+  booking: Record<string, unknown> & {
+    bookingId: string;
+    status: string;
+    totalAmount: number;
+    currency: string;
+    createdAt: string;
+    commissionAmount: number | null;
+    commissionAudience: CommissionAudience | null;
+    promoCode: string | null;
+    discountAmount: number | null;
+    contactEmail?: string | null;
+    contactMobile?: string | null;
+    user: { id: string; name: string; email: string; role: string };
+  };
+  /** The booking record snapshot - shape varies by service and booking age. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  record: Record<string, any> | null;
+  payments: Array<{
+    merchantTxnNo: string;
+    status: string;
+    amount: number;
+    currency: string;
+    paymentMode: string | null;
+    txnId: string | null;
+    responseCode: string | null;
+    respDescription: string | null;
+    hmacVerified: boolean;
+    statusVerified: boolean;
+    createdAt: string;
+    paidAt: string | null;
+    failedAt: string | null;
+    refundAmount: number | null;
+  }>;
+}
+
 export interface AdminOrdersResponse {
   items: AdminOrder[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -1104,6 +1144,12 @@ class ApiClient {
     query.set('page', String(params.page ?? 1));
     query.set('limit', String(params.limit ?? 25));
     return this.authenticatedRequest<AdminOrdersResponse>(`/admin/orders?${query.toString()}`);
+  }
+
+  async getOrderDetail(service: OrderService, bookingId: string): Promise<AdminOrderDetail> {
+    return this.authenticatedRequest<AdminOrderDetail>(
+      `/admin/orders/${service}/${encodeURIComponent(bookingId)}`,
+    );
   }
 
   // ---------------------------------------------------------- Custom payments

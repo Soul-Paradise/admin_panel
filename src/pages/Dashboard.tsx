@@ -12,6 +12,7 @@ import {
   IndianRupee,
   Mail,
   Plane,
+  Receipt,
   ShieldCheck,
   Star,
   TicketPercent,
@@ -144,6 +145,7 @@ export default function Dashboard() {
     [
       { to: '/users', label: 'User Details', page: 'USERS' as const, hint: 'Browse and manage customer accounts', icon: Users, accent: 'blue' as const },
       { to: '/partners', label: 'Booking Partners', page: 'BOOKING_PARTNERS' as const, hint: 'Approve and review partner agents', icon: Handshake, accent: 'orange' as const },
+      { to: '/orders', label: 'Orders', page: 'ORDERS' as const, hint: 'Every booking with its commission', icon: Receipt, accent: 'teal' as const },
       { to: '/commissions', label: 'Commission', page: 'COMMISSION' as const, hint: 'Set service commission rates', icon: BadgePercent, accent: 'green' as const },
       { to: '/coupons', label: 'Coupons', page: 'COUPONS' as const, hint: 'Create and manage discount codes', icon: TicketPercent, accent: 'purple' as const },
     ] as const
@@ -165,8 +167,8 @@ export default function Dashboard() {
           showAnalytics ? (
             <>
               <HeroStat icon={IndianRupee} label="Revenue" value={analytics ? inr(analytics.bookings.totalRevenue) : null} />
-              <HeroStat icon={TrendingUp} label="Bookings" value={analytics ? analytics.bookings.totalCount.toLocaleString('en-IN') : null} />
-              <HeroStat icon={UserPlus} label="New users" value={analytics ? analytics.users.newInRange.toLocaleString('en-IN') : null} />
+              <HeroStat icon={TrendingUp} label="Completed bookings" value={analytics ? analytics.bookings.totalCount.toLocaleString('en-IN') : null} />
+              <HeroStat icon={BadgePercent} label="Commission" value={analytics ? inr(analytics.commission.earned) : null} />
             </>
           ) : undefined
         }
@@ -221,13 +223,13 @@ export default function Dashboard() {
                 </div>
               }
             >
-              Bookings trend
+              Completed bookings
             </SectionTitle>
             {loadingAnalytics || !analytics ? <div className="h-48 animate-pulse rounded-xl bg-slate-100" /> : <BookingsChart days={analytics.dailyBookings} />}
           </section>
 
           <section className={`p-5 ${CARD}`}>
-            <SectionTitle>Revenue by service</SectionTitle>
+            <SectionTitle aside={<span className="text-xs font-semibold text-inactive">Paid &amp; issued only</span>}>Revenue by service</SectionTitle>
             {loadingAnalytics || !analytics ? (
               <div className="space-y-3">
                 {[0, 1, 2].map((i) => (
@@ -239,6 +241,28 @@ export default function Dashboard() {
             )}
           </section>
         </div>
+      )}
+
+      {/* Commission */}
+      {showAnalytics && (
+        <section className={`mt-6 p-5 ${CARD}`} data-testid="commission-card">
+          <SectionTitle
+            aside={
+              canRead('ORDERS') ? (
+                <Link to="/orders" className="text-xs font-bold text-links hover:underline">
+                  View orders
+                </Link>
+              ) : undefined
+            }
+          >
+            Commission earned
+          </SectionTitle>
+          {loadingAnalytics || !analytics ? (
+            <div className="h-36 animate-pulse rounded-xl bg-slate-100" />
+          ) : (
+            <CommissionBreakdown commission={analytics.commission} rangeLabel={rangeLabel === 'today' ? 'today' : `over ${rangeLabel}`} />
+          )}
+        </section>
       )}
 
       {/* Attention / sign-ups / activity */}
@@ -458,6 +482,88 @@ function ServiceBreakdown({ analytics }: { analytics: AnalyticsOverview }) {
         <span className="text-base font-extrabold tabular-nums text-foreground">{inr(b.totalRevenue)}</span>
       </div>
     </div>
+  );
+}
+
+/** Commission earned in the range: headline, by service, and customers vs partners. */
+function CommissionBreakdown({ commission: c, rangeLabel }: { commission: AnalyticsOverview['commission']; rangeLabel: string }) {
+  const services: { label: string; icon: LucideIcon; accent: Accent; bar: string; slice: { amount: number; count: number } }[] = [
+    { label: 'Flights', icon: Plane, accent: 'blue', bar: 'bg-blue-500', slice: c.byService.flights },
+    { label: 'Hotels', icon: Building2, accent: 'orange', bar: 'bg-orange-500', slice: c.byService.hotels },
+    { label: 'Insurance', icon: ShieldCheck, accent: 'purple', bar: 'bg-purple-500', slice: c.byService.insurance },
+  ];
+  const audiences = [
+    { label: 'Customers', hint: 'B2C', bar: 'bg-emerald-500', slice: c.byAudience.B2C },
+    { label: 'Booking partners', hint: 'B2B', bar: 'bg-amber-500', slice: c.byAudience.B2B },
+  ];
+  const max = Math.max(1, c.earned);
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-xl bg-success/10 p-4">
+          <p className={LABEL}>Earned {rangeLabel}</p>
+          <p className="mt-1 text-3xl font-extrabold tabular-nums text-foreground" data-testid="commission-earned">
+            {inr(c.earned)}
+          </p>
+          <p className="mt-1 text-xs text-inactive">
+            on {c.bookings} confirmed booking{c.bookings === 1 ? '' : 's'}
+          </p>
+          {c.couponDiscount > 0 && (
+            <p className="mt-2 text-xs text-foreground">
+              {inr(c.netOfCoupons)} after {inr(c.couponDiscount)} in coupons
+            </p>
+          )}
+          <p className="mt-3 border-t border-success/20 pt-2 text-xs text-inactive">
+            All time: <span className="font-bold text-foreground tabular-nums">{inr(c.allTimeEarned)}</span>
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {services.map((s) => (
+            <div key={s.label}>
+              <div className="flex items-center gap-3">
+                <IconTile icon={s.icon} accent={s.accent} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-foreground">{s.label}</p>
+                  <p className="text-xs text-inactive">
+                    {s.slice.count} booking{s.slice.count === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <p className="text-sm font-extrabold tabular-nums text-foreground">{inr(s.slice.amount)}</p>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${(s.slice.amount / max) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {audiences.map((a) => (
+            <div key={a.hint}>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-bold text-foreground">
+                  {a.label} <span className="text-xs font-semibold text-inactive">({a.hint})</span>
+                </p>
+                <p className="text-sm font-extrabold tabular-nums text-foreground">{inr(a.slice.amount)}</p>
+              </div>
+              <p className="text-xs text-inactive">
+                {a.slice.count} booking{a.slice.count === 1 ? '' : 's'}
+              </p>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full ${a.bar}`} style={{ width: `${(a.slice.amount / max) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {c.unrecordedBookings > 0 && (
+        <p className="mt-4 text-xs text-inactive">
+          {c.unrecordedBookings} older booking{c.unrecordedBookings === 1 ? '' : 's'} in this period predate per-order commission tracking and are not
+          included.
+        </p>
+      )}
+    </>
   );
 }
 

@@ -19,7 +19,8 @@ export type AdminPage =
   | 'AUDIT_LOGS'
   | 'CUSTOM_PAYMENTS'
   | 'POLICIES'
-  | 'SITE_CONTENT';
+  | 'SITE_CONTENT'
+  | 'ORDERS';
 
 export type AccessLevel = 'READ' | 'WRITE';
 
@@ -434,6 +435,42 @@ export interface PaginatedTestimonials {
 
 // ------------------------------------------------------------------- Utilities
 
+export interface CommissionSlice {
+  amount: number;
+  count: number;
+}
+
+// ---------------------------------------------------------------------- Orders
+
+export type OrderService = 'FLIGHT' | 'HOTEL' | 'INSURANCE';
+export type OrderStatusGroup = 'confirmed' | 'in_progress' | 'unpaid' | 'failed' | 'cancelled';
+
+export interface AdminOrder {
+  id: string;
+  service: OrderService;
+  bookingId: string;
+  /** PNR / hotel confirmation / policy number, once issued. */
+  reference: string | null;
+  summary: string;
+  status: string;
+  statusGroup: OrderStatusGroup;
+  totalAmount: number;
+  currency: string;
+  /** Null for older bookings that did not record it. */
+  commissionAmount: number | null;
+  commissionAudience: CommissionAudience | null;
+  promoCode: string | null;
+  discountAmount: number | null;
+  createdAt: string;
+  user: { id: string; name: string; email: string; role: string };
+}
+
+export interface AdminOrdersResponse {
+  items: AdminOrder[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
+  totals: { orders: number; amount: number; commission: number; discount: number };
+}
+
 export interface AnalyticsOverview {
   range: { key: string; from: string; to: string };
   users: {
@@ -453,6 +490,18 @@ export interface AnalyticsOverview {
     bookingsWithCoupon: number;
     totalDiscountGiven: number;
     topCodes: { code: string; uses: number; discount: number }[];
+  };
+  /** Commission earned on confirmed (paid and issued) bookings in the range. */
+  commission: {
+    earned: number;
+    bookings: number;
+    couponDiscount: number;
+    netOfCoupons: number;
+    byService: { flights: CommissionSlice; hotels: CommissionSlice; insurance: CommissionSlice };
+    byAudience: { B2C: CommissionSlice; B2B: CommissionSlice };
+    allTimeEarned: number;
+    /** Confirmed bookings made before commission was recorded per booking. */
+    unrecordedBookings: number;
   };
   offers: { active: number; total: number };
   partners: { total: number; active: number; revoked: number };
@@ -1035,6 +1084,26 @@ class ApiClient {
     return this.authenticatedRequest<AnalyticsOverview>(
       `/admin/analytics/overview?range=${range}`,
     );
+  }
+
+  // ------------------------------------------------------------------- Orders
+
+  async getOrders(params: {
+    service?: OrderService;
+    status?: OrderStatusGroup | 'paid';
+    audience?: CommissionAudience;
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<AdminOrdersResponse> {
+    const query = new URLSearchParams();
+    if (params.service) query.set('service', params.service);
+    if (params.status) query.set('status', params.status);
+    if (params.audience) query.set('audience', params.audience);
+    if (params.search) query.set('search', params.search);
+    query.set('page', String(params.page ?? 1));
+    query.set('limit', String(params.limit ?? 25));
+    return this.authenticatedRequest<AdminOrdersResponse>(`/admin/orders?${query.toString()}`);
   }
 
   // ---------------------------------------------------------- Custom payments

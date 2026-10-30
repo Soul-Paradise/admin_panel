@@ -338,6 +338,15 @@ export default function Commissions() {
                     className={`${INPUT} pl-9`}
                   />
                 </div>
+                {formCommissionType === 'FIXED' && (
+                  <p className="mt-1.5 text-xs text-inactive">
+                    {formServiceType === 'FLIGHT'
+                      ? 'Charged per passenger: 4 tickets in one booking pay this 4 times.'
+                      : formServiceType === 'HOTEL'
+                        ? 'Charged per room.'
+                        : 'Charged once per booking.'}
+                  </p>
+                )}
               </div>
             </div>
 

@@ -14,6 +14,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
   ScrollText,
   ShieldCheck,
   Star,
@@ -60,6 +61,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Business',
     items: [
+      { to: '/orders', label: 'Orders', page: 'ORDERS', icon: Receipt },
       { to: '/commissions', label: 'Commission', page: 'COMMISSION', icon: BadgePercent },
       { to: '/coupons', label: 'Coupons', page: 'COUPONS', icon: TicketPercent },
       { to: '/offers', label: 'Offers', page: 'OFFERS', icon: Tag },

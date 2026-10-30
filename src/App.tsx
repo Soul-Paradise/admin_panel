@@ -20,6 +20,7 @@ import Utilities from './pages/Utilities';
 import UserAccess from './pages/UserAccess';
 import AuditLogs from './pages/AuditLogs';
 import CustomPayments from './pages/CustomPayments';
+import Orders from './pages/Orders';
 import Policies from './pages/Policies';
 import PolicyEditor from './pages/PolicyEditor';
 import SiteContent from './pages/SiteContent';
@@ -88,6 +89,14 @@ export default function App() {
                 element={
                   <SectionRoute page="BOOKING_PARTNERS">
                     <Agents />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="orders"
+                element={
+                  <SectionRoute page="ORDERS">
+                    <Orders />
                   </SectionRoute>
                 }
               />

@@ -110,7 +110,7 @@ export default function Utilities() {
         stats={
           <>
             <HeroStat icon={BadgeIndianRupee} label="Revenue" value={overview ? money(overview.bookings.totalRevenue) : null} />
-            <HeroStat icon={CalendarCheck} label="Bookings" value={overview ? overview.bookings.totalCount.toLocaleString('en-IN') : null} />
+            <HeroStat icon={CalendarCheck} label="Completed bookings" value={overview ? overview.bookings.totalCount.toLocaleString('en-IN') : null} />
             <HeroStat icon={UserPlus} label="New users" value={overview ? overview.users.newInRange.toLocaleString('en-IN') : null} />
           </>
         }
@@ -171,8 +171,8 @@ export default function Utilities() {
 
           <Section title="Bookings">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Stat label="Total bookings" value={overview.bookings.totalCount} icon={CalendarCheck} accent="blue" />
-              <Stat label="Total revenue" value={money(overview.bookings.totalRevenue)} icon={BadgeIndianRupee} accent="green" />
+              <Stat label="Completed bookings" value={overview.bookings.totalCount} icon={CalendarCheck} accent="blue" />
+              <Stat label="Revenue (paid & issued)" value={money(overview.bookings.totalRevenue)} icon={BadgeIndianRupee} accent="green" />
               <Stat label="Active offers" value={overview.offers.active} icon={Megaphone} accent="orange" />
               <Stat label="Total offers" value={overview.offers.total} icon={Tag} accent="pink" />
             </div>

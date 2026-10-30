@@ -361,8 +361,69 @@ export interface Testimonial {
   rating: number;
   service: string;
   isApproved: boolean;
+  /** Reviewer photo from the media library. */
+  photoUrl: string | null;
+  destination: string | null;
+  /** Pinned reviews are listed first on the site. */
+  isPinned: boolean;
+  /** CUSTOMER = submitted on the site; ADMIN = added here. */
+  source: 'CUSTOMER' | 'ADMIN' | string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TestimonialInput {
+  name: string;
+  review: string;
+  rating: number;
+  service: string;
+  destination?: string | null;
+  photoUrl?: string | null;
+  isApproved: boolean;
+  isPinned: boolean;
+}
+
+// ---------------------------------------------------------------- Destinations
+
+export interface DestinationPhoto {
+  id: string;
+  url: string;
+  title: string;
+  isVisible: boolean;
+}
+
+export interface Destination {
+  id: string;
+  /** Matches the Hall of Fame photo category. */
+  name: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  coverImageUrl: string | null;
+  coverMissing: boolean;
+  isFeatured: boolean;
+  featuredOrder: number;
+  photoCount: number;
+  visiblePhotoCount: number;
+  photos: DestinationPhoto[];
+  shownOnHome: boolean;
+  resolvedImage: string | null;
+  updatedAt: string;
+  updatedByEmail: string | null;
+}
+
+export interface DestinationList {
+  usingDefault: boolean;
+  maxFeatured: number;
+  destinations: Destination[];
+}
+
+export interface DestinationInput {
+  name: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  coverImageUrl?: string | null;
 }
 
 export interface PaginatedTestimonials {
@@ -918,6 +979,52 @@ class ApiClient {
     return this.authenticatedRequest(`/testimonials/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async createTestimonial(input: TestimonialInput): Promise<{ success: boolean; data: Testimonial }> {
+    return this.authenticatedRequest('/testimonials/admin', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateTestimonial(id: string, input: Partial<TestimonialInput>): Promise<{ success: boolean; data: Testimonial }> {
+    return this.authenticatedRequest(`/testimonials/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  // -------------------------------------------------------------- Destinations
+
+  async getDestinations(): Promise<DestinationList> {
+    return this.authenticatedRequest<DestinationList>('/admin/site-content/destinations');
+  }
+
+  async createDestination(input: DestinationInput): Promise<Destination> {
+    return this.authenticatedRequest<Destination>('/admin/site-content/destinations', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateDestination(id: string, input: Partial<DestinationInput>): Promise<Destination> {
+    return this.authenticatedRequest<Destination>(`/admin/site-content/destinations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+  }
+
+  /** Up to five ids in display order; [] = back to the default (first five by name). */
+  async setFeaturedDestinations(ids: string[]): Promise<DestinationList> {
+    return this.authenticatedRequest<DestinationList>('/admin/site-content/destinations/featured', {
+      method: 'PUT',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  async deleteDestination(id: string): Promise<{ deleted: boolean }> {
+    return this.authenticatedRequest(`/admin/site-content/destinations/${id}`, { method: 'DELETE' });
   }
 
   // ----------------------------------------------------------------- Utilities

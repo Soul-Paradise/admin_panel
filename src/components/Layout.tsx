@@ -7,6 +7,7 @@ import {
   FileText,
   Handshake,
   Images,
+  MapPinned,
   LayoutDashboard,
   LayoutTemplate,
   LogOut,
@@ -72,6 +73,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { to: '/policies', label: 'Policies', page: 'POLICIES', icon: FileText },
       { to: '/site-content', label: 'Site Content', page: 'SITE_CONTENT', icon: LayoutTemplate },
       { to: '/media', label: 'Media Library', page: 'SITE_CONTENT', icon: Images },
+      { to: '/destinations', label: 'Destinations', page: 'SITE_CONTENT', icon: MapPinned },
     ],
   },
   {
@@ -181,7 +183,7 @@ export default function Layout() {
         <span className="absolute -right-24 bottom-24 h-56 w-56 rounded-full bg-orange-500/10 blur-3xl" />
       </div>
 
-      <div className={`relative flex shrink-0 items-center justify-between gap-2 px-5 pt-4 pb-3 ${rail('lg:flex-col lg:px-3')}`}>
+      <div className={`relative flex shrink-0 items-center justify-between gap-2 px-5 pt-3 pb-2 ${rail('lg:flex-col lg:px-3')}`}>
         <div className="flex min-w-0 items-center gap-3">
           <BrandLogo className={`h-11 w-auto ${rail('lg:h-10')}`} wordmark={false} />
           <div className={`min-w-0 leading-tight ${rail('lg:hidden')}`}>
@@ -211,8 +213,8 @@ export default function Layout() {
           </div>
         ) : (
           visibleGroups.map((group) => (
-            <div key={group.title} className="mt-2.5 first:mt-0">
-              <p className={`mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 ${rail('lg:hidden')}`}>{group.title}</p>
+            <div key={group.title} className="mt-2 first:mt-0">
+              <p className={`mb-0.5 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 ${rail('lg:hidden')}`}>{group.title}</p>
               {/* In the icon rail a thin rule stands in for the group title. */}
               <div className={`mx-auto mb-2 hidden h-px w-8 bg-white/10 ${rail('lg:block')}`} aria-hidden="true" />
               <div className="space-y-0.5">

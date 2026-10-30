@@ -25,6 +25,7 @@ import PolicyEditor from './pages/PolicyEditor';
 import SiteContent from './pages/SiteContent';
 import SitePageEditor from './pages/SitePageEditor';
 import MediaLibrary from './pages/MediaLibrary';
+import Destinations from './pages/Destinations';
 
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -175,6 +176,14 @@ export default function App() {
                 element={
                   <SectionRoute page="SITE_CONTENT">
                     <MediaLibrary />
+                  </SectionRoute>
+                }
+              />
+              <Route
+                path="destinations"
+                element={
+                  <SectionRoute page="SITE_CONTENT">
+                    <Destinations />
                   </SectionRoute>
                 }
               />

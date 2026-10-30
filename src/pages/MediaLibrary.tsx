@@ -17,7 +17,7 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, ApiError, type BrokenSectionRef, type MediaAsset, type MediaCollection } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
 import { formatBytes } from '../lib/site-content';
@@ -57,7 +57,9 @@ export default function MediaLibrary() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [tab, setTab] = useState<Tab>('HALL_OF_FAME');
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  // ?category= preselects the filter (e.g. "View photos" on the Destinations page).
+  const [searchParams] = useSearchParams();
+  const [category, setCategory] = useState(() => searchParams.get('category') ?? '');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<MediaAsset | null>(null);

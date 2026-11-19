@@ -1,10 +1,10 @@
-name: Deploy to Vercel - Admin Panel (staging)
+name: Deploy STAGING admin panel to Vercel
 
-# Staging copy on its own Vercel project (STAGING_VERCEL_PROJECT_ID), deployed on
-# every push to the staging branch. The build reads the staging project's own
-# environment (staging API, noindex, STAGING banner); the guard below refuses to
-# deploy if that project is not configured as staging, so a wrong project id can
-# never overwrite the live site.
+# Staging copy ("pariksha") on its own Vercel project, deployed on every push to
+# the staging branch. The build reads the staging project's environment
+# (staging API, noindex, STAGING banner) and is refused unless that project is
+# set to staging and the build points at the staging API - never production.
+# Secrets: VERCEL_TOKEN, VERCEL_ORG_ID (shared), STAGING_VERCEL_PROJECT_ID.
 
 on:
   push:
@@ -16,23 +16,32 @@ permissions:
 
 concurrency:
   group: deploy-admin-panel-staging
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: '24'
+  YARN_VERSION: '4.12.0'
   VERCEL_CLI_VERSION: '66.2.0'
+  STAGING_URL: 'https://pariksha-admin.soulparadisetravels.com'
+  PROD_API: 'https://soul-paradise-backend-248893735000.asia-south1.run.app'
+  STAGING_API: 'https://soul-paradise-backend-staging-248893735000.asia-south1.run.app'
 
 jobs:
   deploy:
-    name: Deploy staging to Vercel
-    runs-on: ubuntu-latest
+    name: Deploy STAGING admin panel
     if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.STAGING_VERCEL_PROJECT_ID }}
 
     steps:
+      - name: Refuse to run without a staging project id
+        run: |
+          if [ -z "$VERCEL_PROJECT_ID" ]; then echo "STAGING_VERCEL_PROJECT_ID is not set" >&2; exit 1; fi
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -43,20 +52,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Refuse to run without a staging project id
-        run: |
-          if [ -z "$VERCEL_PROJECT_ID" ]; then echo "STAGING_VERCEL_PROJECT_ID is not set" >&2; exit 1; fi
-
       # yarn.lock is Yarn 4 (Berry); vercel build runs the install itself.
-      - name: Enable Corepack
+      - name: Enable Yarn ${{ env.YARN_VERSION }}
         run: |
           corepack enable
-          corepack prepare yarn@4.12.0 --activate
+          corepack prepare "yarn@${YARN_VERSION}" --activate
 
       - name: Install Vercel CLI
         run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
 
-      - name: Pull Vercel Environment
+      - name: Pull staging project settings and env vars
         run: vercel pull --yes --environment=production
 
       - name: Check the target project is the staging one
@@ -66,10 +71,22 @@ jobs:
             exit 1
           fi
 
-      - name: Build Project
+      - name: Build
         run: vercel build --prod
 
-      - name: Deploy to Vercel
+      - name: Check the build points at the staging API
+        run: |
+          grep -rqF "$STAGING_API" .vercel/output/static/assets/ || { echo "Build does not reference $STAGING_API" >&2; exit 1; }
+          if grep -rqF "$PROD_API/api" .vercel/output/static/assets/; then
+            echo "Build references the PROD API - refusing to deploy" >&2; exit 1
+          fi
+
+      - name: Deploy to ${{ env.STAGING_URL }}
         run: |
           URL=$(vercel deploy --prebuilt --prod)
-          echo "Deployed staging to: $URL" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Staging admin panel deployed"
+            echo "- Deployment: $URL"
+            echo "- Live at: $STAGING_URL"
+            echo "- Commit: ${GITHUB_SHA::7}"
+          } >> "$GITHUB_STEP_SUMMARY"

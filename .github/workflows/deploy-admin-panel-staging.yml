@@ -1,0 +1,75 @@
+name: Deploy to Vercel - Admin Panel (staging)
+
+# Staging copy on its own Vercel project (STAGING_VERCEL_PROJECT_ID), deployed on
+# every push to the staging branch. The build reads the staging project's own
+# environment (staging API, noindex, STAGING banner); the guard below refuses to
+# deploy if that project is not configured as staging, so a wrong project id can
+# never overwrite the live site.
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-admin-panel-staging
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  VERCEL_CLI_VERSION: '66.2.0'
+
+jobs:
+  deploy:
+    name: Deploy staging to Vercel
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.STAGING_VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Refuse to run without a staging project id
+        run: |
+          if [ -z "$VERCEL_PROJECT_ID" ]; then echo "STAGING_VERCEL_PROJECT_ID is not set" >&2; exit 1; fi
+
+      # yarn.lock is Yarn 4 (Berry); vercel build runs the install itself.
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@4.12.0 --activate
+
+      - name: Install Vercel CLI
+        run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production
+
+      - name: Check the target project is the staging one
+        run: |
+          if ! grep -qE '^VITE_APP_ENV="?staging"?$' .vercel/.env.production.local; then
+            echo "Refusing to deploy: the Vercel project's VITE_APP_ENV is not 'staging'" >&2
+            exit 1
+          fi
+
+      - name: Build Project
+        run: vercel build --prod
+
+      - name: Deploy to Vercel
+        run: |
+          URL=$(vercel deploy --prebuilt --prod)
+          echo "Deployed staging to: $URL" >> "$GITHUB_STEP_SUMMARY"

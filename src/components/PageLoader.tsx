@@ -3,7 +3,7 @@ import BrandLogo from './BrandLogo';
 /** Full-page spinner used while auth/access is still resolving (the site's loader ring). */
 export default function PageLoader({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-background" role="status" aria-live="polite">
+    <div className="flex min-h-[calc(100dvh-var(--staging-h))] flex-col items-center justify-center gap-5 bg-background" role="status" aria-live="polite">
       <BrandLogo className="h-14 w-auto" tone="dark" />
       <span className="relative flex h-10 w-10">
         <span className="absolute inset-0 rounded-full border-4 border-primary-tint" />

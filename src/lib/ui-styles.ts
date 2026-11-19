@@ -104,3 +104,11 @@ export const GRADIENTS = {
 
 export type Accent = keyof typeof GRADIENTS;
 
+
+// ---------------------------------------------------------------------------
+// Environment banner
+// ---------------------------------------------------------------------------
+
+/** Staging strip pinned to the top; its height matches --staging-h (lib/app-env.ts). */
+export const STAGING_BANNER =
+  'fixed inset-x-0 top-0 z-[60] flex h-[var(--staging-h)] items-center justify-center gap-1.5 bg-warn px-4 text-xs font-semibold text-ink shadow-sm';

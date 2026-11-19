@@ -57,6 +57,7 @@ export default function SitePageEditor() {
   const [brokenUrls, setBrokenUrls] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    if (!pageMeta(page)) return;
     let cancelled = false;
     api
       .getMissingMedia()
@@ -82,6 +83,8 @@ export default function SitePageEditor() {
   const [preview, setPreview] = useState<SiteSectionRevision | null>(null);
 
   const load = useCallback(async () => {
+    // Only known pages reach the API; anything else renders the "unknown page" state.
+    if (!pageMeta(page)) return;
     try {
       setSections(await api.getSitePage(page));
       setLoadError(null);

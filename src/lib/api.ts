@@ -1,4 +1,16 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+// A production bundle must never silently talk to localhost. vite.config.ts
+// fails the build when VITE_API_URL is missing; this is the runtime backstop.
+const API_BASE_URL: string = (() => {
+  const configured = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  if (import.meta.env.PROD) {
+    throw new Error('VITE_API_URL is not set. Production builds must define the API base URL.');
+  }
+  return 'http://localhost:8080/api/v1';
+})();
+
+const ACCESS_TOKEN_KEY = 'admin_accessToken';
+const REFRESH_TOKEN_KEY = 'admin_refreshToken';
 
 // 'USER' is what the backend Role enum actually calls a customer. This used to
 // say 'CUSTOMER', which matched nothing - the Dashboard's customer count silently
@@ -764,20 +776,26 @@ class ApiClient {
     this.baseUrl = API_BASE_URL;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+  /** One refresh at a time: parallel 401s all wait on the same attempt. */
+  private refreshInFlight: Promise<boolean> | null = null;
+
+  private send(endpoint: string, options: RequestInit = {}): Promise<Response> {
     // FormData bodies (uploads) must let the browser set the multipart boundary.
     const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
-    const config: RequestInit = {
+    return fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: {
         ...(isForm ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
-    };
+    });
+  }
 
-    const response = await fetch(url, config);
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return this.parse<T>(await this.send(endpoint, options));
+  }
 
+  private async parse<T>(response: Response): Promise<T> {
     // Not every failure carries a JSON body - a gateway 502 or an empty 204
     // would otherwise surface as an unrelated JSON parse error.
     const raw = await response.text();
@@ -795,34 +813,92 @@ class ApiClient {
     return data as T;
   }
 
-  private async authenticatedRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  /**
+   * Sends with the access token. On a 401 it exchanges the refresh token once
+   * (POST /auth/refresh) and retries; if that fails the session is over, so the
+   * tokens are cleared and the browser is sent to the login page.
+   */
+  private async authorizedFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    const attempt = (token: string) =>
+      this.send(endpoint, {
+        ...options,
+        headers: { ...options.headers, Authorization: `Bearer ${token}` },
+      });
+
     const accessToken = this.getAccessToken();
     if (!accessToken) {
       throw new ApiError('Not authenticated', 401);
     }
 
-    return this.request<T>(endpoint, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const response = await attempt(accessToken);
+    if (response.status !== 401) return response;
+
+    const refreshed = await this.refreshSession();
+    const nextToken = refreshed ? this.getAccessToken() : null;
+    if (nextToken) {
+      const retried = await attempt(nextToken);
+      if (retried.status !== 401) return retried;
+    }
+
+    this.endSession();
+    return response;
+  }
+
+  private async authenticatedRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return this.parse<T>(await this.authorizedFetch(endpoint, options));
+  }
+
+  private refreshSession(): Promise<boolean> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.exchangeRefreshToken().finally(() => {
+        this.refreshInFlight = null;
+      });
+    }
+    return this.refreshInFlight;
+  }
+
+  private async exchangeRefreshToken(): Promise<boolean> {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) return false;
+    try {
+      const response = await this.send('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) return false;
+      const tokens = (await response.json()) as Partial<AuthResponse>;
+      if (!tokens.accessToken || !tokens.refreshToken) return false;
+      this.setTokens(tokens.accessToken, tokens.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Session can't be recovered: drop the tokens and go to the login page. */
+  private endSession() {
+    this.clearTokens();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login');
+    }
   }
 
   // Token management
+  // NOTE: tokens live in localStorage, readable by any script on this origin.
+  // The CSP limits who can run script here; moving to httpOnly cookies needs a
+  // backend change and is tracked separately.
   setTokens(accessToken: string, refreshToken: string) {
-    localStorage.setItem('admin_accessToken', accessToken);
-    localStorage.setItem('admin_refreshToken', refreshToken);
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
   getAccessToken(): string | null {
-    return localStorage.getItem('admin_accessToken');
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
   }
 
   clearTokens() {
-    localStorage.removeItem('admin_accessToken');
-    localStorage.removeItem('admin_refreshToken');
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {
@@ -863,7 +939,7 @@ class ApiClient {
   }
 
   async updateUserRole(userId: string, role: UserRole): Promise<User> {
-    return this.authenticatedRequest<User>(`/admin/users/${userId}/role`, {
+    return this.authenticatedRequest<User>(`/admin/users/${encodeURIComponent(userId)}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     });
@@ -882,14 +958,14 @@ class ApiClient {
   }
 
   async updateCommission(id: string, input: UpdateCommissionInput): Promise<ServiceCommission> {
-    return this.authenticatedRequest<ServiceCommission>(`/admin/commissions/${id}`, {
+    return this.authenticatedRequest<ServiceCommission>(`/admin/commissions/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
   }
 
   async deleteCommission(id: string): Promise<{ deleted: boolean }> {
-    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/commissions/${id}`, {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/commissions/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   }
@@ -907,14 +983,14 @@ class ApiClient {
   }
 
   async updateOffer(id: string, input: UpdateOfferInput): Promise<Offer> {
-    return this.authenticatedRequest<Offer>(`/admin/offers/${id}`, {
+    return this.authenticatedRequest<Offer>(`/admin/offers/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
   }
 
   async deleteOffer(id: string): Promise<{ deleted: boolean }> {
-    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/offers/${id}`, {
+    return this.authenticatedRequest<{ deleted: boolean }>(`/admin/offers/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   }
@@ -941,7 +1017,7 @@ class ApiClient {
   }
 
   async getAgent(id: string): Promise<AgentApplication> {
-    return this.authenticatedRequest<AgentApplication>(`/admin/agents/${id}`);
+    return this.authenticatedRequest<AgentApplication>(`/admin/agents/${encodeURIComponent(id)}`);
   }
 
   /**
@@ -961,7 +1037,7 @@ class ApiClient {
     expiresInSeconds?: number;
   }> {
     return this.authenticatedRequest(
-      `/admin/agents/${id}/documents/${documentId}/url`,
+      `/admin/agents/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/url`,
     );
   }
 
@@ -974,15 +1050,8 @@ class ApiClient {
    * token and get a 401.
    */
   async getAgentDocumentBlob(id: string, documentId: string): Promise<Blob> {
-    const token = this.getAccessToken();
-
-    if (!token) {
-      throw new ApiError('Not authenticated', 401);
-    }
-
-    const response = await fetch(
-      `${API_BASE_URL}/admin/agents/${id}/documents/${documentId}/raw`,
-      { headers: { Authorization: `Bearer ${token}` } },
+    const response = await this.authorizedFetch(
+      `/admin/agents/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/raw`,
     );
 
     if (!response.ok) {
@@ -997,7 +1066,7 @@ class ApiClient {
     id: string,
     field: 'pan' | 'aadhaar',
   ): Promise<{ field: string; value: string }> {
-    return this.authenticatedRequest(`/admin/agents/${id}/reveal/${field}`);
+    return this.authenticatedRequest(`/admin/agents/${encodeURIComponent(id)}/reveal/${encodeURIComponent(field)}`);
   }
 
   /** Revoke a partner's access. Takes effect on their next request. */
@@ -1005,7 +1074,7 @@ class ApiClient {
     id: string,
     reason?: string,
   ): Promise<{ id: string; isActive: boolean }> {
-    return this.authenticatedRequest(`/admin/agents/${id}/revoke`, {
+    return this.authenticatedRequest(`/admin/agents/${encodeURIComponent(id)}/revoke`, {
       method: 'POST',
       body: JSON.stringify(reason ? { reason } : {}),
     });
@@ -1013,7 +1082,7 @@ class ApiClient {
 
   /** Restore a previously revoked partner's access. */
   async restoreAgent(id: string): Promise<{ id: string; isActive: boolean }> {
-    return this.authenticatedRequest(`/admin/agents/${id}/restore`, {
+    return this.authenticatedRequest(`/admin/agents/${encodeURIComponent(id)}/restore`, {
       method: 'POST',
     });
   }
@@ -1042,7 +1111,7 @@ class ApiClient {
     userId: string,
     access: PageAccessMap,
   ): Promise<{ userId: string; access: PageAccessMap }> {
-    return this.authenticatedRequest(`/admin/access/${userId}`, {
+    return this.authenticatedRequest(`/admin/access/${encodeURIComponent(userId)}`, {
       method: 'PUT',
       body: JSON.stringify({ access }),
     });
@@ -1051,7 +1120,7 @@ class ApiClient {
   // -------------------------------------------------------------- User details
 
   async getUserDetail(userId: string): Promise<UserDetail> {
-    return this.authenticatedRequest<UserDetail>(`/admin/users/${userId}`);
+    return this.authenticatedRequest<UserDetail>(`/admin/users/${encodeURIComponent(userId)}`);
   }
 
   // ------------------------------------------------------------------- Coupons
@@ -1071,7 +1140,7 @@ class ApiClient {
     id: string,
     input: UpdatePromoCodeInput,
   ): Promise<PromoCode> {
-    return this.authenticatedRequest<PromoCode>(`/admin/promo-codes/${id}`, {
+    return this.authenticatedRequest<PromoCode>(`/admin/promo-codes/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
@@ -1079,7 +1148,7 @@ class ApiClient {
 
   /** Rejected by the backend if the coupon has ever been redeemed - deactivate instead. */
   async deletePromoCode(id: string): Promise<{ deleted: boolean }> {
-    return this.authenticatedRequest(`/admin/promo-codes/${id}`, {
+    return this.authenticatedRequest(`/admin/promo-codes/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   }
@@ -1107,14 +1176,14 @@ class ApiClient {
     id: string,
     isApproved: boolean,
   ): Promise<{ success: boolean; data: Testimonial }> {
-    return this.authenticatedRequest(`/testimonials/${id}/approval`, {
+    return this.authenticatedRequest(`/testimonials/${encodeURIComponent(id)}/approval`, {
       method: 'PATCH',
       body: JSON.stringify({ isApproved }),
     });
   }
 
   async deleteTestimonial(id: string): Promise<{ success: boolean }> {
-    return this.authenticatedRequest(`/testimonials/${id}`, {
+    return this.authenticatedRequest(`/testimonials/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   }
@@ -1127,7 +1196,7 @@ class ApiClient {
   }
 
   async updateTestimonial(id: string, input: Partial<TestimonialInput>): Promise<{ success: boolean; data: Testimonial }> {
-    return this.authenticatedRequest(`/testimonials/${id}`, {
+    return this.authenticatedRequest(`/testimonials/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
@@ -1147,7 +1216,7 @@ class ApiClient {
   }
 
   async updateDestination(id: string, input: Partial<DestinationInput>): Promise<Destination> {
-    return this.authenticatedRequest<Destination>(`/admin/site-content/destinations/${id}`, {
+    return this.authenticatedRequest<Destination>(`/admin/site-content/destinations/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
@@ -1162,7 +1231,7 @@ class ApiClient {
   }
 
   async deleteDestination(id: string): Promise<{ deleted: boolean }> {
-    return this.authenticatedRequest(`/admin/site-content/destinations/${id}`, { method: 'DELETE' });
+    return this.authenticatedRequest(`/admin/site-content/destinations/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   // ----------------------------------------------------------------- Utilities
@@ -1197,7 +1266,7 @@ class ApiClient {
 
   async getOrderDetail(service: OrderService, bookingId: string): Promise<AdminOrderDetail> {
     return this.authenticatedRequest<AdminOrderDetail>(
-      `/admin/orders/${service}/${encodeURIComponent(bookingId)}`,
+      `/admin/orders/${encodeURIComponent(service)}/${encodeURIComponent(bookingId)}`,
     );
   }
 
@@ -1251,20 +1320,20 @@ class ApiClient {
     id: string,
     input: { inboxStatus?: ContactInboxStatus; adminNote?: string | null },
   ): Promise<ContactMessage> {
-    return this.authenticatedRequest(`/admin/customer-messages/${id}`, {
+    return this.authenticatedRequest(`/admin/customer-messages/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     });
   }
 
   async resendContactMessage(id: string): Promise<ContactMessage> {
-    return this.authenticatedRequest(`/admin/customer-messages/${id}/resend`, {
+    return this.authenticatedRequest(`/admin/customer-messages/${encodeURIComponent(id)}/resend`, {
       method: 'POST',
     });
   }
 
   async deleteContactMessage(id: string): Promise<{ success: boolean }> {
-    return this.authenticatedRequest(`/admin/customer-messages/${id}`, {
+    return this.authenticatedRequest(`/admin/customer-messages/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
   }
@@ -1334,7 +1403,7 @@ class ApiClient {
 
   async getLegalRevision(slug: string, revision: number): Promise<LegalRevisionDetail> {
     return this.authenticatedRequest<LegalRevisionDetail>(
-      `/admin/legal/${encodeURIComponent(slug)}/revisions/${revision}`,
+      `/admin/legal/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(revision)}`,
     );
   }
 
@@ -1358,18 +1427,18 @@ class ApiClient {
   }
 
   async getSitePage(page: SitePage): Promise<SiteSection[]> {
-    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${page}`);
+    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${encodeURIComponent(page)}`);
   }
 
   async reorderSitePage(page: SitePage, keys: string[]): Promise<SiteSection[]> {
-    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${page}/order`, {
+    return this.authenticatedRequest<SiteSection[]>(`/admin/site-content/${encodeURIComponent(page)}/order`, {
       method: 'PUT',
       body: JSON.stringify({ keys }),
     });
   }
 
   async getSiteSection(page: SitePage, key: string): Promise<SiteSection> {
-    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}`);
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${encodeURIComponent(page)}/${encodeURIComponent(key)}`);
   }
 
   /** 409 (ApiError.statusCode) means someone else saved since `input.version`. */
@@ -1378,7 +1447,7 @@ class ApiClient {
     key: string,
     input: { content?: unknown; isVisible?: boolean; version: number },
   ): Promise<SiteSection> {
-    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}`, {
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${encodeURIComponent(page)}/${encodeURIComponent(key)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
@@ -1386,12 +1455,12 @@ class ApiClient {
 
   async getSiteSectionRevisions(page: SitePage, key: string): Promise<SiteSectionRevision[]> {
     return this.authenticatedRequest<SiteSectionRevision[]>(
-      `/admin/site-content/${page}/${encodeURIComponent(key)}/revisions`,
+      `/admin/site-content/${encodeURIComponent(page)}/${encodeURIComponent(key)}/revisions`,
     );
   }
 
   async restoreSiteSection(page: SitePage, key: string, revision: number, version: number): Promise<SiteSection> {
-    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${page}/${encodeURIComponent(key)}/restore`, {
+    return this.authenticatedRequest<SiteSection>(`/admin/site-content/${encodeURIComponent(page)}/${encodeURIComponent(key)}/restore`, {
       method: 'POST',
       body: JSON.stringify({ revision, version }),
     });
@@ -1424,7 +1493,7 @@ class ApiClient {
     id: string,
     patch: Partial<Pick<MediaAsset, 'title' | 'caption' | 'category' | 'collection' | 'isVisible'>>,
   ): Promise<MediaAsset> {
-    return this.authenticatedRequest<MediaAsset>(`/admin/site-content/media/${id}`, {
+    return this.authenticatedRequest<MediaAsset>(`/admin/site-content/media/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     });
@@ -1438,7 +1507,7 @@ class ApiClient {
   }
 
   async getMediaUsage(id: string): Promise<{ usedIn: string[] }> {
-    return this.authenticatedRequest<{ usedIn: string[] }>(`/admin/site-content/media/${id}/usage`);
+    return this.authenticatedRequest<{ usedIn: string[] }>(`/admin/site-content/media/${encodeURIComponent(id)}/usage`);
   }
 
   /** Records whose files were deleted from the bucket, and sections still using them. */
@@ -1463,7 +1532,7 @@ class ApiClient {
   /** 409 carries `usedIn` (see ApiError.data) when a section still shows the image. */
   async deleteMedia(id: string, force = false): Promise<{ deleted: boolean; objectName: string }> {
     return this.authenticatedRequest<{ deleted: boolean; objectName: string }>(
-      `/admin/site-content/media/${id}${force ? '?force=true' : ''}`,
+      `/admin/site-content/media/${encodeURIComponent(id)}${force ? '?force=true' : ''}`,
       { method: 'DELETE' },
     );
   }

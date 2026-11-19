@@ -7,6 +7,7 @@ import {
   type AgentListItem,
 } from '../lib/api';
 import { useAccess } from '../hooks/useAccess';
+import { downloadBlob, inlineTypeFor, safeFilename } from '../lib/safe-document';
 import { Alert, Badge, EmptyState, HeroStat, PageHeader, Panel, Spinner, Tabs } from '../components/ui';
 import {
   BTN_DANGER,
@@ -442,6 +443,7 @@ function DocumentCard({
       const info = await api.getAgentDocumentUrl(applicationId, doc.id);
 
       if (info.mode === 'signed' && info.url) {
+        if (!/^https:\/\//i.test(info.url)) throw new Error('Refusing to open a non-HTTPS document link');
         // GCS: the browser fetches straight from Google. Opened immediately and
         // never persisted - the URL expires in ~5 minutes and is a bearer
         // credential for a raw identity document.
@@ -451,9 +453,16 @@ function DocumentCard({
 
       // Local storage: no browser-reachable URL exists, and the streaming
       // endpoint needs an Authorization header that window.open() cannot send.
-      // So pull the bytes ourselves and open them as a blob.
+      // So pull the bytes ourselves and open them as a blob - but only formats
+      // that can't carry script (see safe-document.ts). Anything else, e.g. an
+      // upload claiming to be a PDF that is really HTML, is downloaded instead.
       const blob = await api.getAgentDocumentBlob(applicationId, doc.id);
-      const objectUrl = URL.createObjectURL(blob);
+      const inlineType = await inlineTypeFor(blob);
+      if (!inlineType) {
+        downloadBlob(blob, safeFilename(`${doc.type}-${doc.id}`.toLowerCase()));
+        return;
+      }
+      const objectUrl = URL.createObjectURL(new Blob([blob], { type: inlineType }));
 
       window.open(objectUrl, '_blank', 'noopener,noreferrer');
 

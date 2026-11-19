@@ -584,7 +584,9 @@ function MessageModal({
     }
   }
 
-  const replyHref = `mailto:${message.email}?subject=${encodeURIComponent(`Re: ${message.subject}`)}`;
+  // Encoded so a crafted address can't smuggle extra headers (cc/bcc/body) in.
+  const mailtoHref = `mailto:${encodeURIComponent(message.email)}`;
+  const replyHref = `${mailtoHref}?subject=${encodeURIComponent(`Re: ${message.subject}`)}`;
   const noteChanged = (note.trim() || null) !== (message.adminNote ?? null);
 
   return (
@@ -632,10 +634,10 @@ function MessageModal({
           <div>
             <p className={LABEL}>From</p>
             <p className="mt-1 font-bold text-foreground">{message.fullName}</p>
-            <a href={`mailto:${message.email}`} className="block text-sm break-all text-links hover:underline">
+            <a href={mailtoHref} className="block text-sm break-all text-links hover:underline">
               {message.email}
             </a>
-            <a href={`tel:${message.phoneNumber}`} className="inline-flex items-center gap-1 text-sm text-links hover:underline">
+            <a href={`tel:${message.phoneNumber.replace(/[^0-9+]/g, '')}`} className="inline-flex items-center gap-1 text-sm text-links hover:underline">
               <Phone className="h-3.5 w-3.5" />
               {message.phoneNumber}
             </a>

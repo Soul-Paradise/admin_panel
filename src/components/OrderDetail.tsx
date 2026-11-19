@@ -33,6 +33,17 @@ const when = (iso: unknown) =>
 const text = (v: unknown) =>
   v === null || v === undefined || v === "" ? "–" : String(v);
 
+/** Supplier-provided links are only rendered when they are plain https URLs. */
+const httpsUrl = (v: unknown): string | null => {
+  if (typeof v !== "string") return null;
+  try {
+    const url = new URL(v);
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+};
+
 const GROUP_TONE: Record<string, Tone> = {
   confirmed: "green",
   in_progress: "amber",
@@ -368,11 +379,11 @@ function InsuranceSections({ r }: { r: Record<string, any> }) {
               rows={r.result.vouchers.map((v: any) => [
                 text(v.policyNumber),
                 text(v.status),
-                v.documentUrl ? (
+                httpsUrl(v.documentUrl) ? (
                   <a
-                    href={v.documentUrl}
+                    href={httpsUrl(v.documentUrl)!}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="font-bold text-links hover:underline"
                   >
                     Open

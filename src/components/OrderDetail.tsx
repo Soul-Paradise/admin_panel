@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import { api, type AdminOrderDetail, type OrderService } from "../lib/api";
 import { Alert, Badge, Modal, Spinner } from "./ui";
+import { TicketButton } from "./TicketButton";
 import { LABEL, type Tone } from "../lib/ui-styles";
 
 /**
@@ -28,6 +29,8 @@ const when = (iso: unknown) =>
         hour: "numeric",
         minute: "2-digit",
         second: "2-digit",
+        // Booking times are Indian: never the viewer's browser zone.
+        timeZone: "Asia/Kolkata",
       })
     : "–";
 const text = (v: unknown) =>
@@ -132,13 +135,87 @@ function errorsOf(r: Record<string, any>): string[] {
   return out;
 }
 
+/** Cancellation recorded on the booking (flights and hotels), with the refund due. */
+function CancellationSection({ cx }: { cx: Record<string, any> | undefined }) {
+  if (!cx) return null;
+  return (
+    <Section title="Cancellation & refund">
+      <Grid
+        rows={[
+          ["Cancelled at", when(cx.at)],
+          ["Cancellation ID", text(cx.cancellationId)],
+          ...(cx.autoCancellation === undefined
+            ? []
+            : ([
+                [
+                  "Confirmed by supplier at once",
+                  cx.autoCancellation ? "Yes" : "No (pending at the supplier)",
+                ],
+              ] as Array<[string, ReactNode]>)),
+          ["Cancellation charge", typeof cx.cancellationCharge === "number" ? inr(cx.cancellationCharge) : "Not computed yet"],
+          [
+            "Refund due to customer",
+            typeof cx.refundDue === "number" ? <span className="text-success">{inr(cx.refundDue)}</span> : "Not computed yet",
+          ],
+          ["Customer remarks", text(cx.remarks)],
+        ]}
+      />
+    </Section>
+  );
+}
+
+/** Whether our ticket / voucher email reached the customer (timeline). */
+function CommunicationSection({ r, kind }: { r: Record<string, any>; kind: "TICKET" | "VOUCHER" }) {
+  const timeline: any[] = Array.isArray(r.timeline) ? r.timeline : [];
+  const sent = [...timeline].reverse().find((t) => new RegExp(`^${kind}_EMAIL`).test(t.event));
+  const label = kind === "TICKET" ? "E-ticket" : "Voucher";
+  return (
+    <Section title="Customer communication">
+      <Grid
+        rows={[
+          [`${label} sent to`, text(r.request?.contactInfo?.email)],
+          [
+            `${label} email`,
+            sent
+              ? sent.event === `${kind}_EMAILED`
+                ? `Sent · ${when(sent.at)}`
+                : `Failed · ${when(sent.at)} · ${text(sent.detail)}`
+              : "Not sent (booking not confirmed)",
+          ],
+        ]}
+      />
+    </Section>
+  );
+}
+
 function FlightSections({ r }: { r: Record<string, any> }) {
   const it = r.itinerary ?? {};
   const req = r.request ?? {};
   const p = r.pricing ?? {};
+  const bz = r.benzy ?? {};
   const ticketPax: any[] = r.ticket?.passengers ?? [];
   return (
     <>
+      <Section title="Booking references" empty={!bz.transactionId}>
+        <Grid
+          rows={[
+            ["Airline PNR", text(bz.pnr)],
+            ["Benzy transaction", text(bz.transactionId)],
+            ["Benzy booking status", text(bz.bookingStatus)],
+            ["Outcome", text(bz.outcome)],
+            ["StartPay code", text(bz.startPayCode)],
+            [
+              "Benzy net (priced / itinerary / paid)",
+              `${inr(bz.pricedNetAmount)} / ${inr(bz.itineraryNetAmount)} / ${inr(bz.startPayNetAmount)}`,
+            ],
+            ["Add-ons priced", inr(bz.pricedSsrAmount)],
+            ["Benzy gross", inr(bz.supplierGrossAmount)],
+            ["Itinerary TUI", <span className="font-mono text-[11px]">{text(bz.itineraryTui)}</span>],
+          ]}
+        />
+      </Section>
+      <CancellationSection cx={r.cancellation} />
+      <CommunicationSection r={r} kind="TICKET" />
       <Section title="Price breakup" empty={!r.pricing}>
         <Grid
           rows={[
@@ -236,8 +313,87 @@ function HotelSections({ r }: { r: Record<string, any> }) {
   const fb = it.fareBreakdown ?? {};
   const p = r.pricing ?? {};
   const v = r.response ?? {};
+  const bz = r.benzy ?? {};
+  const cx = r.cancellation;
+  const req = r.request ?? {};
+  const reqRooms: any[] = req.rooms ?? [];
+  const vRooms: any[] = v.rooms ?? [];
+  const guestsCount = reqRooms.reduce((s, x) => s + (x.guests?.length ?? 0), 0);
+  // Suppliers repeat address parts ("Goa,403512, ., Goa, Goa"): keep each once.
+  const parts = v.hotel?.address
+    ? [v.hotel.address.line1, v.hotel.address.line2, v.hotel.address.city, v.hotel.address.state, v.hotel.address.zip]
+        .flatMap((x: unknown) => String(x ?? "").split(","))
+        .map((x: string) => x.trim())
+        .filter((x: string) => x && x !== ".")
+    : [];
+  const address =
+    [...new Map(parts.map((x: string) => [x.toLowerCase(), x])).values()].join(", ") ||
+    it.hotel?.fullAddress ||
+    it.hotel?.address;
   return (
     <>
+      <Section title="Stay" empty={!it.room && !v.hotel && !req.hotelCode}>
+        <Grid
+          rows={[
+            ["Hotel", text(v.hotel?.name ?? it.hotel?.name)],
+            ["Address", text(address)],
+            ["Hotel phone", text(v.hotel?.phone)],
+            [
+              "Check-in",
+              `${text(v.checkInDate?.slice?.(0, 10) ?? req.checkInDate)}${v.checkInTime ? `, from ${v.checkInTime}` : ""}`,
+            ],
+            [
+              "Check-out",
+              `${text(v.checkOutDate?.slice?.(0, 10) ?? req.checkOutDate)}${v.checkOutTime ? `, until ${v.checkOutTime}` : ""}`,
+            ],
+            ["Nights", text(v.nights)],
+            [
+              "Rooms / guests",
+              `${reqRooms.length || vRooms.length} room(s), ${guestsCount || "–"} guest(s)`,
+            ],
+            ["Room type", text(it.room?.name ?? vRooms[0]?.name)],
+            ["Meal plan", text(it.room?.boardBasis)],
+            ["Inclusions", text((it.room?.inclusions ?? []).join(", "))],
+            ["Refundable", it.room ? (it.room.refundable ? "Yes" : "No") : "–"],
+            ["Free cancellation until", when(it.room?.freeCancellationUntil ?? v.freeCancellationUntil)],
+            ["Special request", text(req.specialRequest)],
+            ["GST", req.contactInfo?.gstTin ? `${req.contactInfo.gstTin} · ${text(req.contactInfo.gstCompanyName)}` : "–"],
+          ]}
+        />
+      </Section>
+      <Section title="Rooms & guests" empty={!reqRooms.length}>
+        <Table
+          head={["Room", "Room type", "Guest", "Type", "PAN", "Supplier conf."]}
+          rows={reqRooms.flatMap((room: any, i: number) =>
+            (room.guests ?? []).map((g: any, j: number) => [
+              j === 0 ? `Room ${i + 1}` : "",
+              j === 0 ? text(vRooms[i]?.name ?? it.room?.name) : "",
+              `${g.title} ${g.firstName} ${g.lastName}`,
+              g.paxType === "C" ? `Child${g.age ? ` (${g.age} yrs)` : ""}` : "Adult",
+              text(g.pan),
+              j === 0 ? text(vRooms[i]?.supplierConfirmationNumber) : "",
+            ]),
+          )}
+        />
+      </Section>
+      <Section title="Booking references" empty={!bz.transactionId && !v.transactionId}>
+        <Grid
+          rows={[
+            ["Hotel confirmation no.", text(v.confirmationId)],
+            ["Benzy transaction", text(bz.transactionId ?? v.transactionId)],
+            ["Benzy booking status", text(bz.status)],
+            ["StartPay status", text(bz.startPayStatus ?? bz.startPayError)],
+            [
+              "Benzy net (booked / priced)",
+              `${inr(bz.netAmount)} / ${inr(bz.pricedNet)}`,
+            ],
+            ["Benzy TUI", <span className="font-mono text-[11px]">{text(bz.tui)}</span>],
+          ]}
+        />
+      </Section>
+      <CancellationSection cx={cx} />
+      <CommunicationSection r={r} kind="VOUCHER" />
+
       <Section title="Price breakup">
         <Grid
           rows={[
@@ -266,39 +422,6 @@ function HotelSections({ r }: { r: Record<string, any> }) {
             />
           </div>
         )}
-      </Section>
-      <Section title="Stay" empty={!it.room && !v.hotel}>
-        <Grid
-          rows={[
-            ["Hotel", text(it.hotel?.name ?? v.hotel?.name)],
-            ["Address", text(it.hotel?.address ?? v.hotel?.address?.line1)],
-            ["Room", text(it.room?.name ?? v.rooms?.[0]?.name)],
-            ["Meal plan", text(it.room?.boardBasis)],
-            ["Refundable", it.room ? (it.room.refundable ? "Yes" : "No") : "–"],
-            ["Free cancellation until", when(it.room?.freeCancellationUntil)],
-            [
-              "Check-in / out",
-              `${text(r.request?.checkInDate)} → ${text(r.request?.checkOutDate)}`,
-            ],
-            [
-              "Confirmation / supplier ref",
-              `${text(v.confirmationId)} / ${text(v.supplierConfirmationId)}`,
-            ],
-          ]}
-        />
-      </Section>
-      <Section title="Guests">
-        <Table
-          head={["Room", "Name", "Type", "PAN"]}
-          rows={(r.request?.rooms ?? []).flatMap((room: any, i: number) =>
-            (room.guests ?? []).map((g: any) => [
-              `Room ${i + 1}`,
-              `${g.title} ${g.firstName} ${g.lastName}`,
-              g.paxType === "C" ? `Child ${g.age ?? ""}` : "Adult",
-              text(g.pan),
-            ]),
-          )}
-        />
       </Section>
     </>
   );
@@ -474,6 +597,11 @@ export function OrderDetailModal({
               <span className="font-mono text-xs text-inactive">
                 status: {b.status}
               </span>
+              {data.ticketAvailable && (
+                <span className="ml-auto">
+                  <TicketButton service={data.service} bookingId={b.bookingId} size="md" />
+                </span>
+              )}
             </div>
             <Grid
               rows={[

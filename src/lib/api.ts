@@ -465,6 +465,8 @@ export interface AdminOrder {
   /** PNR / hotel confirmation / policy number, once issued. */
   reference: string | null;
   summary: string;
+  /** The e-ticket / hotel voucher can be downloaded (issued flight or hotel). */
+  ticketAvailable?: boolean;
   status: string;
   statusGroup: OrderStatusGroup;
   totalAmount: number;
@@ -516,6 +518,8 @@ export interface AdminOrderDetail {
     failedAt: string | null;
     refundAmount: number | null;
   }>;
+  /** The customer's e-ticket / hotel voucher can be downloaded. */
+  ticketAvailable?: boolean;
 }
 
 export interface AdminOrdersResponse {
@@ -1268,6 +1272,32 @@ class ApiClient {
     return this.authenticatedRequest<AdminOrderDetail>(
       `/admin/orders/${encodeURIComponent(service)}/${encodeURIComponent(bookingId)}`,
     );
+  }
+
+  /**
+   * Downloads the customer's ticket (flight e-ticket / hotel voucher PDF). Not
+   * a plain link: the endpoint needs the Authorization header.
+   */
+  async downloadOrderTicket(service: OrderService, bookingId: string): Promise<void> {
+    const response = await this.authorizedFetch(
+      `/admin/orders/${encodeURIComponent(service)}/${encodeURIComponent(bookingId)}/ticket.pdf`,
+    );
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new ApiError(readErrorMessage(data, response.status), response.status, data);
+    }
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const fileName =
+      /filename="([^"]+)"/.exec(disposition)?.[1] ||
+      `${service === 'HOTEL' ? 'hotel-voucher' : 'e-ticket'}-${bookingId}.pdf`;
+    const url = URL.createObjectURL(await response.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   // ---------------------------------------------------------- Custom payments

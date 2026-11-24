@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Windows download markers
+*:Zone.Identifier
+
+# Yarn 4 per-machine install state
+.yarn/install-state.gz

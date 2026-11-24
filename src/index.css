@@ -44,10 +44,13 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* Room for the staging banner: lib/app-env.ts sets its height on staging builds only. */
+    --staging-h: 0px;
   }
 
   body {
     @apply bg-background text-foreground font-nunito antialiased;
+    padding-top: var(--staging-h);
     /* Stops the pull-to-refresh rubber-band on mobile showing a grey void. */
     overscroll-behavior-y: none;
   }

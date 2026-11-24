@@ -23,7 +23,7 @@ export default function Login() {
 
   return (
     // dvh rather than vh: on mobile 100vh includes the address bar.
-    <div className="flex min-h-dvh bg-background">
+    <div className="flex min-h-[calc(100dvh-var(--staging-h))] bg-background">
       {/* Left pane: the site plays a video here; a still keeps the admin light. */}
       <div className="relative hidden overflow-hidden lg:flex lg:flex-3">
         {loginImage ? (
@@ -53,7 +53,7 @@ export default function Login() {
           <BrandLogo className="h-12 w-auto" tone="dark" />
         </div>
 
-        <div className="relative flex min-h-dvh items-center justify-center px-4 pt-16 pb-6 sm:px-8 lg:py-6">
+        <div className="relative flex min-h-[calc(100dvh-var(--staging-h))] items-center justify-center px-4 pt-16 pb-6 sm:px-8 lg:py-6">
           <div className="animate-fade-up w-full max-w-[460px] rounded-2xl bg-peace px-6 py-6 shadow-xl ring-1 ring-tertiary-button sm:px-7">
             <div className="mb-5">
               <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-links">

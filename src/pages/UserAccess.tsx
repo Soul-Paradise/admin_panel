@@ -130,7 +130,8 @@ export default function UserAccess() {
   const [pages, setPages] = useState<AdminPage[]>(FALLBACK_PAGES);
   const [admins, setAdmins] = useState<AdminAccessRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PageAccessMap>>({});
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // Accordion: one admin's sections open at a time (undefined = the first one).
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -347,7 +348,7 @@ export default function UserAccess() {
             const draft = drafts[admin.id] ?? {};
             const changed = isSuper ? [] : changedPages(admin.access, draft, pages);
             const saving = savingId === admin.id;
-            const isCollapsed = collapsed[admin.id] ?? false;
+            const isCollapsed = (openId === undefined ? visible[0]?.id : openId) !== admin.id;
 
             const granted = isSuper ? pages.length : pages.filter((p) => draft[p]).length;
             const writes = isSuper ? pages.length : pages.filter((p) => draft[p] === 'WRITE').length;
@@ -380,7 +381,7 @@ export default function UserAccess() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setCollapsed((c) => ({ ...c, [admin.id]: !isCollapsed }))}
+                      onClick={() => setOpenId(isCollapsed ? admin.id : null)}
                       aria-expanded={!isCollapsed}
                       aria-label={isCollapsed ? `Show sections for ${admin.name}` : `Hide sections for ${admin.name}`}
                       className="rounded-full p-1.5 text-inactive transition-colors hover:bg-primary-tint hover:text-links"

@@ -11,6 +11,7 @@ import {
 } from '../lib/api';
 import { Alert, Badge, EmptyState, HeroStat, IconTile, PageHeader, Pagination, Panel, Spinner } from '../components/ui';
 import { OrderDetailModal } from '../components/OrderDetail';
+import { TicketButton } from '../components/TicketButton';
 import { FIELD_LABEL, INPUT, PAGE, SELECT, TABLE_HEAD, TBODY, TH, TROW, type Accent, type Tone } from '../lib/ui-styles';
 
 const LIMIT = 25;
@@ -280,13 +281,16 @@ export default function Orders() {
                           <CommissionCell order={o} />
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setViewing({ service: o.service, bookingId: o.bookingId })}
-                            className="rounded-full px-3 py-1 text-xs font-bold text-links ring-1 ring-tertiary-button hover:bg-primary-tint/50"
-                          >
-                            View
-                          </button>
+                          <div className="flex items-start justify-end gap-2">
+                            {o.ticketAvailable && <TicketButton service={o.service} bookingId={o.bookingId} />}
+                            <button
+                              type="button"
+                              onClick={() => setViewing({ service: o.service, bookingId: o.bookingId })}
+                              className="rounded-full px-3 py-1 text-xs font-bold text-links ring-1 ring-tertiary-button hover:bg-primary-tint/50"
+                            >
+                              View
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

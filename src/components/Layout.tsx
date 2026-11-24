@@ -299,9 +299,11 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-dvh bg-background lg:flex" style={{ '--sidebar-w': collapsed ? NARROW : WIDE } as CSSProperties}>
+    // --staging-h is 0px outside staging; on staging it keeps the sticky/fixed
+    // chrome below the environment banner instead of under it.
+    <div className="min-h-[calc(100dvh-var(--staging-h))] bg-background lg:flex" style={{ '--sidebar-w': collapsed ? NARROW : WIDE } as CSSProperties}>
       {/* Mobile top bar - the only way to reach the nav below lg. */}
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-white/10 bg-gradient-to-r from-ink-soft to-ink px-4 text-white shadow-md lg:hidden">
+      <header className="sticky top-[var(--staging-h)] z-30 flex h-16 items-center gap-2 border-b border-white/10 bg-gradient-to-r from-ink-soft to-ink px-4 text-white shadow-md lg:hidden">
         <button
           type="button"
           onClick={() => setNavOpen(true)}
@@ -326,14 +328,14 @@ export default function Layout() {
        * mean two copies of the nav state to keep in step.
        */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-hidden bg-gradient-to-b from-ink-soft to-ink shadow-2xl shadow-ink/30 transition-[transform,width] duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-[var(--sidebar-w)] lg:max-w-none lg:translate-x-0 ${
+        className={`fixed top-[var(--staging-h)] bottom-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-hidden bg-gradient-to-b from-ink-soft to-ink shadow-2xl shadow-ink/30 transition-[transform,width] duration-200 ease-out lg:sticky lg:top-[var(--staging-h)] lg:z-auto lg:h-[calc(100dvh-var(--staging-h))] lg:w-[var(--sidebar-w)] lg:max-w-none lg:translate-x-0 ${
           navOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {sidebar}
       </aside>
 
-      <main className="min-w-0 flex-1 lg:h-dvh lg:overflow-y-auto">
+      <main className="min-w-0 flex-1 lg:h-[calc(100dvh-var(--staging-h))] lg:overflow-y-auto">
         <Outlet />
       </main>
     </div>

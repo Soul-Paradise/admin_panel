@@ -1,49 +1,93 @@
-name: Deploy to Vercel - Admin Panel
+name: Deploy PROD admin panel to Vercel
+
+# Production deploys: started by hand, from main only. A dry run builds with the
+# production settings on any branch without deploying. The build reads the
+# production Vercel project's own environment (vercel pull), and is checked to
+# point at the production API - never the staging one - before it is deployed.
+# Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build only - do not deploy (allowed on any branch)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-admin-panel-prod
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: '24'
+  YARN_VERSION: '4.12.0'
+  # Pinned: bump deliberately, never @latest.
+  VERCEL_CLI_VERSION: '66.2.0'
+  PROD_URL: 'https://admin.soulparadisetravels.com'
+  PROD_API: 'https://soul-paradise-backend-248893735000.asia-south1.run.app'
+  STAGING_API: 'https://soul-paradise-backend-staging-248893735000.asia-south1.run.app'
 
 jobs:
   deploy:
-    name: Deploy to Vercel
+    name: Deploy PROD admin panel
+    if: github.ref == 'refs/heads/main' || inputs.dry_run
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # The CLI reads these from the environment, so the token never appears on a
+    # command line.
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+
+      # yarn.lock is Yarn 4 (Berry); vercel build runs the install itself.
+      - name: Enable Yarn ${{ env.YARN_VERSION }}
+        run: |
+          corepack enable
+          corepack prepare "yarn@${YARN_VERSION}" --activate
 
       - name: Install Vercel CLI
-        run: yarn global add vercel@latest
+        run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
 
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Pull prod project settings and env vars
+        run: vercel pull --yes --environment=production
 
-      - name: Build Project
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      - name: Build
+        run: vercel build --prod
 
-      - name: Deploy to Vercel
-        id: deploy
+      - name: Check the build points at the prod API
         run: |
-          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
-          echo "Deployed to: $URL" >> $GITHUB_STEP_SUMMARY
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          grep -rqF "$PROD_API/api" .vercel/output/static/assets/ || { echo "Build does not reference $PROD_API" >&2; exit 1; }
+          if grep -rqF "$STAGING_API" .vercel/output/static/assets/; then
+            echo "Build references the STAGING API - refusing to deploy" >&2; exit 1
+          fi
+          echo "OK: build uses $PROD_API"
+
+      - name: Deploy to ${{ env.PROD_URL }}
+        if: ${{ !inputs.dry_run && github.ref == 'refs/heads/main' }}
+        run: |
+          URL=$(vercel deploy --prebuilt --prod)
+          {
+            echo "### PROD admin panel deployed"
+            echo "- Deployment: $URL"
+            echo "- Live at: $PROD_URL"
+            echo "- Commit: ${GITHUB_SHA::7}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry run on ${GITHUB_REF_NAME} (${GITHUB_SHA::7}) - built with prod settings, NOT deployed." | tee -a "$GITHUB_STEP_SUMMARY"

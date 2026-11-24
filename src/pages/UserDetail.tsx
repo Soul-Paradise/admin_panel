@@ -156,8 +156,12 @@ function BookingCard({ booking }: { booking: UserBooking }) {
   );
 }
 
+const USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function UserDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
+  // User ids are UUIDs; anything else never reaches the API and shows "not found".
+  const id = rawId && USER_ID_PATTERN.test(rawId) ? rawId : null;
   const navigate = useNavigate();
 
   const [data, setData] = useState<UserDetailData | null>(null);
@@ -205,7 +209,7 @@ export default function UserDetail() {
     </button>
   );
 
-  if (loading) {
+  if (id && loading) {
     return (
       <div className={PAGE}>
         <PageHeader eyebrow="People" title="User details" subtitle="Loading user…" actions={backLink} />
@@ -216,7 +220,7 @@ export default function UserDetail() {
     );
   }
 
-  if (error || !data) {
+  if (!id || error || !data) {
     return (
       <div className={PAGE}>
         <PageHeader eyebrow="People" title="User details" actions={backLink} />

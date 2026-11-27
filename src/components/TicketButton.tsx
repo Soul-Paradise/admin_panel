@@ -4,7 +4,8 @@ import { api, type OrderService } from "../lib/api";
 
 /**
  * Downloads the customer's ticket for a booking with one click: the flight
- * e-ticket or the hotel voucher - the same PDF the customer received.
+ * e-ticket, the hotel voucher or the insurance policy confirmation - the same
+ * PDF the customer received.
  */
 export function TicketButton({
   service,
@@ -17,7 +18,7 @@ export function TicketButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const label = service === "HOTEL" ? "Voucher" : "E-ticket";
+  const label = service === "HOTEL" ? "Voucher" : service === "INSURANCE" ? "Policy" : "E-ticket";
 
   const download = async () => {
     setBusy(true);

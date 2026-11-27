@@ -1275,7 +1275,7 @@ class ApiClient {
   }
 
   /**
-   * Downloads the customer's ticket (flight e-ticket / hotel voucher PDF). Not
+   * Downloads the customer's ticket (flight e-ticket / hotel voucher / insurance policy PDF). Not
    * a plain link: the endpoint needs the Authorization header.
    */
   async downloadOrderTicket(service: OrderService, bookingId: string): Promise<void> {
@@ -1289,7 +1289,7 @@ class ApiClient {
     const disposition = response.headers.get('Content-Disposition') || '';
     const fileName =
       /filename="([^"]+)"/.exec(disposition)?.[1] ||
-      `${service === 'HOTEL' ? 'hotel-voucher' : 'e-ticket'}-${bookingId}.pdf`;
+      `${service === 'HOTEL' ? 'hotel-voucher' : service === 'INSURANCE' ? 'travel-insurance' : 'e-ticket'}-${bookingId}.pdf`;
     const url = URL.createObjectURL(await response.blob());
     const a = document.createElement('a');
     a.href = url;

@@ -164,16 +164,24 @@ function CancellationSection({ cx }: { cx: Record<string, any> | undefined }) {
   );
 }
 
-/** Whether our ticket / voucher email reached the customer (timeline). */
-function CommunicationSection({ r, kind }: { r: Record<string, any>; kind: "TICKET" | "VOUCHER" }) {
+/** Whether our ticket / voucher / policy email reached the customer (timeline). */
+function CommunicationSection({
+  r,
+  kind,
+  to = r.request?.contactInfo?.email,
+}: {
+  r: Record<string, any>;
+  kind: "TICKET" | "VOUCHER" | "POLICY";
+  to?: string;
+}) {
   const timeline: any[] = Array.isArray(r.timeline) ? r.timeline : [];
   const sent = [...timeline].reverse().find((t) => new RegExp(`^${kind}_EMAIL`).test(t.event));
-  const label = kind === "TICKET" ? "E-ticket" : "Voucher";
+  const label = kind === "TICKET" ? "E-ticket" : kind === "VOUCHER" ? "Voucher" : "Policy";
   return (
     <Section title="Customer communication">
       <Grid
         rows={[
-          [`${label} sent to`, text(r.request?.contactInfo?.email)],
+          [`${label} sent to`, text(to)],
           [
             `${label} email`,
             sent
@@ -478,6 +486,9 @@ function InsuranceSections({ r }: { r: Record<string, any> }) {
               "Insurer status / code",
               `${text(r.result?.status)} / ${text(r.result?.code)}`,
             ],
+            // ProcessInsuranceItineraryListing status: B0 = issued (the only "confirmed").
+            ["Benzy itinerary status", text(r.result?.itineraryStatus)],
+            ["Transaction ID", text(r.result?.transactionId)],
             ["Confirmation", text(r.result?.confirmationNumber)],
           ]}
         />
@@ -519,6 +530,7 @@ function InsuranceSections({ r }: { r: Record<string, any> }) {
           </div>
         )}
       </Section>
+      <CommunicationSection r={r} kind="POLICY" to={r.request?.contact?.email} />
     </>
   );
 }

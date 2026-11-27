@@ -31,3 +31,15 @@ dist-ssr
 
 # Yarn 4 per-machine install state
 .yarn/install-state.gz
+
+# Environment files: real values never go into git - only .env.example is tracked.
+.env
+.env.*
+!.env.example
+
+# Credentials / key files
+*.pem
+*.key
+client_secret*.json
+*service-account*.json
+*-sa-key*.json

@@ -99,7 +99,7 @@ export function PageHeader({
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/80 to-ink/30" aria-hidden="true" />
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-links via-sky-400 to-accent-light" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-links" aria-hidden="true" />
 
       <div className="relative px-5 py-6 sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -295,7 +295,7 @@ export default function Dashboard() {
                   {recentUsers.map((u) => (
                     <li key={u.id}>
                       <Link to={`/users/${u.id}`} className="group flex items-center gap-3 py-2.5">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-primary-button text-sm font-bold text-white">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-button text-sm font-bold text-white">
                           {u.name.charAt(0).toUpperCase()}
                         </span>
                         <span className="min-w-0 flex-1">

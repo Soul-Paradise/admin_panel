@@ -72,7 +72,6 @@ export const CHECKBOX = 'h-4 w-4 shrink-0 rounded border-tertiary-button accent-
 
 export const TABLE_HEAD = 'bg-background';
 export const TH = `px-5 py-3 text-left ${LABEL}`;
-export const TD = 'px-5 py-3.5 text-sm text-foreground';
 export const TBODY = 'divide-y divide-tertiary-button';
 export const TROW = 'transition-colors hover:bg-primary-tint/40';
 

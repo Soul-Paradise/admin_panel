@@ -155,11 +155,11 @@ export default function Layout() {
   const rail = (classes: string) => (collapsed ? classes : '');
 
   // Navy sidebar in the customer site's footer style: white/65 links that
-  // brighten on hover, and a brand-blue glowing pill for the current section.
+  // brighten on hover, and a solid brand-blue pill for the current section.
   const linkClasses = ({ isActive }: { isActive: boolean }) =>
     `group relative flex items-center gap-3 rounded-xl px-2.5 py-1 text-sm transition-all duration-200 ${rail('lg:justify-center lg:px-0')} ${
       isActive
-        ? 'bg-gradient-to-r from-primary-button to-blue-500 font-bold text-white shadow-lg shadow-blue-950/40'
+        ? 'bg-primary-button font-bold text-white shadow-lg shadow-blue-950/40'
         : 'font-semibold text-white/65 hover:bg-white/[0.06] hover:text-white'
     }`;
 
@@ -179,7 +179,7 @@ export default function Layout() {
   const sidebar = (
     <>
       {/* Same brand stripe as the top of the site's footer */}
-      <div className="h-1 shrink-0 bg-gradient-to-r from-links via-sky-400 to-accent-light" aria-hidden="true" />
+      <div className="h-1 shrink-0 bg-links" aria-hidden="true" />
 
       {/* Soft glows, like the site's auth pages */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -258,7 +258,7 @@ export default function Layout() {
         <div className={`rounded-2xl bg-white/[0.06] p-3 ring-1 ring-white/10 backdrop-blur ${rail('lg:p-2')}`}>
           <div className={`flex items-center gap-2.5 ${rail('lg:justify-center')}`}>
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-primary-button text-xs font-extrabold tracking-wide text-white ring-2 ring-white/20"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-button text-xs font-extrabold tracking-wide text-white ring-2 ring-white/20"
               title={collapsed ? `${user?.name ?? ''} · ${isSuperAdmin ? 'Super Admin' : 'Admin'}` : undefined}
             >
               {initials(user?.name)}
